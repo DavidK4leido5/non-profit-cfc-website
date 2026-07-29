@@ -1,5 +1,8 @@
 # Render Blueprint — static site for @church/web (Turborepo monorepo)
 # Static sites are free by default — do NOT set `plan` (that field is for web services only).
+#
+# Node: pnpm 11.17 requires Node >= 22.13. If builds still use 22.12, open Render Dashboard
+# → cfc-church-web → Environment → set NODE_VERSION to 22.14.0 (or delete it and use .nvmrc).
 services:
   - type: web
     name: cfc-church-web
@@ -19,4 +22,6 @@ services:
         destination: /index.html
     envVars:
       - key: NODE_VERSION
-        value: "22.13.0"
+        value: "22.14.0"
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
