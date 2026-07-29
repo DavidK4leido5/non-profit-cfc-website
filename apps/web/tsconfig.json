@@ -5,6 +5,11 @@
     "jsxImportSource": "solid-js",
     "paths": {
       "~/*": ["./src/*"],
+      "@church/ui/button": ["../../packages/ui/src/components/Button.tsx"],
+      "@church/ui/navbar": ["../../packages/ui/src/components/Navbar.tsx"],
+      "@church/ui/hero": ["../../packages/ui/src/components/Hero.tsx"],
+      "@church/ui/hero-preview-card": ["../../packages/ui/src/components/HeroPreviewCard.tsx"],
+      "@church/ui/trust-strip": ["../../packages/ui/src/components/TrustStrip.tsx"],
       "@church/ui/page-shell": ["../../packages/ui/src/components/PageShell.tsx"]
     }
   },

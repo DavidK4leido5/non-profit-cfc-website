@@ -31,6 +31,10 @@ RUN pnpm exec turbo run build --filter=@church/web
 # ---
 FROM base AS dev
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /app /app
 WORKDIR /app
 

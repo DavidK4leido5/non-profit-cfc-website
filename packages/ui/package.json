@@ -4,8 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./button": "./src/components/Button.tsx",
+    "./navbar": "./src/components/Navbar.tsx",
+    "./hero": "./src/components/Hero.tsx",
+    "./hero-preview-card": "./src/components/HeroPreviewCard.tsx",
+    "./trust-strip": "./src/components/TrustStrip.tsx",
     "./page-shell": "./src/components/PageShell.tsx",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./tokens.css": "./src/tokens.css"
   },
   "scripts": {
     "dev": "storybook dev -p 6006 --host 0.0.0.0 --no-open",

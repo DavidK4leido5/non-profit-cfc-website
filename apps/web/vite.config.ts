@@ -3,17 +3,27 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
+import {
+  churchUiAliases,
+  dockerDevWatch,
+  dockerPollReload,
+  watchUiPackage,
+} from "./vite.workspace";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = path.resolve(rootDir, "../..");
 
 export default defineConfig({
-  plugins: [solid(), tailwindcss()],
+  plugins: [solid(), tailwindcss(), watchUiPackage(monorepoRoot), dockerPollReload(monorepoRoot)],
   resolve: {
     alias: {
       "~": path.resolve(rootDir, "src"),
+      ...churchUiAliases(monorepoRoot),
     },
     dedupe: ["solid-js"],
+  },
+  optimizeDeps: {
+    exclude: ["@church/ui"],
   },
   server: {
     host: true,
@@ -21,9 +31,7 @@ export default defineConfig({
     fs: {
       allow: [monorepoRoot],
     },
-    watch: {
-      usePolling: process.env.CHOKIDAR_USEPOLLING === "true",
-    },
+    ...dockerDevWatch(),
     proxy: {
       "/api/v1": {
         target: process.env.VITE_API_PROXY ?? "http://localhost:8080",

@@ -1,0 +1,121 @@
+/**
+ * Design tokens — see COLOR-PALETTE.md for rationale and usage.
+ */
+:root {
+  /* Brand — Royal Blue */
+  --color-brand-50: #eef2fc;
+  --color-brand-100: #d9e4fa;
+  --color-brand-200: #b3c9f5;
+  --color-brand-300: #8daef0;
+  --color-brand-400: #5c85e8;
+  --color-brand-500: #4169e1;
+  --color-brand-600: #3454b4;
+  --color-brand-700: #2a4390;
+  --color-brand-800: #1f326c;
+  --color-brand-900: #15224a;
+  --color-brand-950: #0c1428;
+
+  /* Ink */
+  --color-ink: #0f172a;
+  --color-ink-heading: #0c1428;
+  --color-ink-muted: #475569;
+  --color-ink-subtle: #64748b;
+  --color-ink-inverse: #f8fafc;
+
+  /* Surface */
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f8fafc;
+  --color-surface-muted: #f1f5f9;
+  --color-surface-hero: #eef2fc;
+  --color-surface-hero-end: #f8fafc;
+  --color-surface-elevated: #ffffff;
+
+  /* Accent — gold */
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+
+  /* Semantic */
+  --color-success: #059669;
+  --color-success-subtle: #ecfdf5;
+  --color-warning: #d97706;
+  --color-warning-subtle: #fffbeb;
+  --color-error: #dc2626;
+  --color-error-subtle: #fef2f2;
+  --color-info: #4169e1;
+  --color-info-subtle: #eef2fc;
+
+  /* Border */
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-border-brand: #b3c9f5;
+
+  /* Focus */
+  --color-focus-ring: #4169e1;
+  --color-focus-ring-offset: #ffffff;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgb(12 20 40 / 0.05);
+  --shadow-md: 0 4px 12px rgb(12 20 40 / 0.08);
+  --shadow-lg: 0 12px 32px rgb(12 20 40 / 0.1);
+  --shadow-hero: 0 24px 48px rgb(12 20 40 / 0.12), 0 8px 16px rgb(65 105 225 / 0.08);
+
+  /* Gradients */
+  --gradient-hero: linear-gradient(
+    180deg,
+    var(--color-surface-hero) 0%,
+    var(--color-surface-hero-end) 100%
+  );
+}
+
+@theme inline {
+  --color-brand-50: var(--color-brand-50);
+  --color-brand-100: var(--color-brand-100);
+  --color-brand-200: var(--color-brand-200);
+  --color-brand-300: var(--color-brand-300);
+  --color-brand-400: var(--color-brand-400);
+  --color-brand-500: var(--color-brand-500);
+  --color-brand-600: var(--color-brand-600);
+  --color-brand-700: var(--color-brand-700);
+  --color-brand-800: var(--color-brand-800);
+  --color-brand-900: var(--color-brand-900);
+  --color-brand-950: var(--color-brand-950);
+
+  --color-ink: var(--color-ink);
+  --color-ink-heading: var(--color-ink-heading);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-ink-subtle: var(--color-ink-subtle);
+  --color-ink-inverse: var(--color-ink-inverse);
+
+  --color-surface: var(--color-surface);
+  --color-surface-subtle: var(--color-surface-subtle);
+  --color-surface-muted: var(--color-surface-muted);
+  --color-surface-hero: var(--color-surface-hero);
+  --color-surface-elevated: var(--color-surface-elevated);
+
+  --color-accent-400: var(--color-accent-400);
+  --color-accent-500: var(--color-accent-500);
+  --color-accent-600: var(--color-accent-600);
+
+  --color-success: var(--color-success);
+  --color-success-subtle: var(--color-success-subtle);
+  --color-warning: var(--color-warning);
+  --color-warning-subtle: var(--color-warning-subtle);
+  --color-error: var(--color-error);
+  --color-error-subtle: var(--color-error-subtle);
+  --color-info: var(--color-info);
+  --color-info-subtle: var(--color-info-subtle);
+
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-border-brand: var(--color-border-brand);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-hero: var(--shadow-hero);
+}
+
+.bg-hero-gradient {
+  background: var(--gradient-hero);
+}

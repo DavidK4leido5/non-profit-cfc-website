@@ -5,7 +5,7 @@
   "description": "Church website monorepo",
   "scripts": {
     "dev": "turbo run dev",
-    "dev:docker": "docker compose watch",
+    "dev:docker": "docker compose up --watch --remove-orphans",
     "docker:build": "docker compose build",
     "docker:down": "docker compose down -v",
     "build": "turbo run build",

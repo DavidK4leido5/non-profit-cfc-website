@@ -24,8 +24,11 @@ Separate `web` and `api` services, each built from its own Dockerfile.
 
 ```bash
 docker compose build
-docker compose watch    # syncs file changes + starts web, Storybook, and API
+pnpm dev:docker
+# same as: docker compose up --watch --remove-orphans
 ```
+
+Keep that terminal open — `--watch` runs in the foreground and handles hot reload.
 
 | Service | URL |
 |---------|-----|
@@ -36,7 +39,15 @@ docker compose watch    # syncs file changes + starts web, Storybook, and API
 
 **Do not install `node_modules` on the host.** JS deps install into the `church_node_modules` Docker volume via `apps/web/entrypoint.sh`.
 
-`docker compose watch` syncs your repo into the containers — edits on the host hot-reload automatically. The `web` service runs both Vite and Storybook via Turborepo (`@church/web` + `@church/ui`). Swagger is served by the `api` service at `/swagger/` (no separate process).
+**How file changes apply:**
+
+| Change | Mechanism |
+|--------|-----------|
+| Web / UI / content (`apps/web`, `packages/ui`) | Bind mount + Vite poll reload (~500ms page refresh in Docker on Windows) + Storybook HMR |
+| Go API (`apps/api`) | Bind mount + container restart via `--watch` |
+| `pnpm-lock.yaml` | Watch restarts `web` container |
+
+`docker compose up -d` alone starts services but **does not** run watch actions — API won't auto-restart on Go edits.
 
 Other commands (only when you need a one-off task):
 

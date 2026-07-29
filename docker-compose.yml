@@ -1,5 +1,9 @@
 name: church-page
 
+# Dev:  docker compose up --watch
+# File sync: bind mounts (web + api). Watch restarts api on Go changes and rebuilds web on lockfile changes.
+# `docker compose up -d` alone does NOT enable watch actions.
+
 services:
   web:
     container_name: web
@@ -12,6 +16,8 @@ services:
       - "${STORYBOOK_PORT:-6006}:6006"
     environment:
       CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "500"
+      WATCHPACK_POLLING: "true"
       TURBO_TELEMETRY_DISABLED: "1"
       VITE_API_PROXY: http://api:8080
     volumes:
@@ -22,22 +28,11 @@ services:
     command: ["pnpm", "exec", "turbo", "run", "dev", "--filter=@church/web", "--filter=@church/ui"]
     develop:
       watch:
-        - action: sync
-          path: .
-          target: /app
-          ignore:
-            - node_modules/
-            - "**/node_modules/"
-            - .git/
-            - .turbo/
-            - dist/
-            - bin/
-            - storybook-static/
-        - action: rebuild
-          path: package.json
         - action: sync+restart
-          path: pnpm-lock.yaml
+          path: ./pnpm-lock.yaml
           target: /app/pnpm-lock.yaml
+        - action: rebuild
+          path: ./apps/web/Dockerfile
 
   api:
     container_name: api
@@ -61,6 +56,8 @@ services:
           ignore:
             - vendor/
             - bin/
+        - action: rebuild
+          path: ./apps/api/Dockerfile
 
 volumes:
   church_node_modules:
