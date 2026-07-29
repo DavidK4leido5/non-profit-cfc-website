@@ -18,7 +18,7 @@
   },
   "packageManager": "pnpm@11.17.0",
   "engines": {
-    "node": ">=22.13.0",
+    "node": "22.x",
     "pnpm": "11.17.0"
   },
   "keywords": [],
