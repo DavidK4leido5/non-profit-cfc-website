@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm exec turbo run build --filter=@church/web",
+  "devCommand": "pnpm exec turbo run dev --filter=@church/web",
+  "installCommand": "corepack enable && corepack prepare pnpm@11.17.0 --activate && pnpm install --frozen-lockfile",
+  "outputDirectory": "apps/web/dist",
+  "framework": null,
+  "rewrites": [{ "source": "/((?!assets/).*)", "destination": "/index.html" }]
+}

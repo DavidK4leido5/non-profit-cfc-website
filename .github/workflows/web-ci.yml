@@ -9,6 +9,7 @@ on:
       - "pnpm-lock.yaml"
       - "turbo.json"
       - "render.yaml"
+      - "vercel.json"
       - "apps/web/Dockerfile"
       - "apps/web/nginx.conf"
   push:
@@ -20,6 +21,7 @@ on:
       - "pnpm-lock.yaml"
       - "turbo.json"
       - "render.yaml"
+      - "vercel.json"
       - "apps/web/Dockerfile"
       - "apps/web/nginx.conf"
 
