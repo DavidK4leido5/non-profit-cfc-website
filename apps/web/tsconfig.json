@@ -10,7 +10,21 @@
       "@church/ui/hero": ["../../packages/ui/src/components/Hero.tsx"],
       "@church/ui/hero-preview-card": ["../../packages/ui/src/components/HeroPreviewCard.tsx"],
       "@church/ui/trust-strip": ["../../packages/ui/src/components/TrustStrip.tsx"],
-      "@church/ui/page-shell": ["../../packages/ui/src/components/PageShell.tsx"]
+      "@church/ui/ministry-card": ["../../packages/ui/src/components/MinistryCard.tsx"],
+      "@church/ui/ministries-section": ["../../packages/ui/src/components/MinistriesSection.tsx"],
+      "@church/ui/bento-grid": ["../../packages/ui/src/components/BentoGrid.tsx"],
+      "@church/ui/upcoming-activities-section": [
+        "../../packages/ui/src/components/UpcomingActivitiesSection.tsx"
+      ],
+      "@church/ui/g12-vision-section": [
+        "../../packages/ui/src/components/G12VisionSection.tsx"
+      ],
+      "@church/ui/visit-invite-section": [
+        "../../packages/ui/src/components/VisitInviteSection.tsx"
+      ],
+      "@church/ui/site-footer": ["../../packages/ui/src/components/SiteFooter.tsx"],
+      "@church/ui/page-shell": ["../../packages/ui/src/components/PageShell.tsx"],
+      "@church/ui/motion": ["../../packages/ui/src/motion/index.ts"]
     }
   },
   "include": ["src"]

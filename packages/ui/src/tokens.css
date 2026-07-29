@@ -60,12 +60,20 @@
   --shadow-lg: 0 12px 32px rgb(12 20 40 / 0.1);
   --shadow-hero: 0 24px 48px rgb(12 20 40 / 0.12), 0 8px 16px rgb(65 105 225 / 0.08);
 
+  /* Layout */
+  --container-page: 90rem;
+  --container-nav: 96rem;
+
   /* Gradients */
   --gradient-hero: linear-gradient(
     180deg,
     var(--color-surface-hero) 0%,
     var(--color-surface-hero-end) 100%
   );
+
+  /* GradedImage split-tone — tune strength without touching skin midtones */
+  --image-grade-shadow-opacity: 0.16;
+  --image-grade-highlight-opacity: 0.22;
 }
 
 @theme inline {
@@ -114,8 +122,136 @@
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
   --shadow-hero: var(--shadow-hero);
+
+  --container-page: var(--container-page);
+  --container-nav: var(--container-nav);
+}
+
+.max-w-page {
+  max-width: var(--container-page);
+}
+
+.max-w-nav {
+  max-width: var(--container-nav);
 }
 
 .bg-hero-gradient {
   background: var(--gradient-hero);
+}
+
+/** Stack for graded photos — isolation keeps blend layers predictable. */
+.image-grade {
+  isolation: isolate;
+}
+
+/**
+ * Split-tone brand blue — cools shadows & sky/light, leaves midtones (skin) alone.
+ * multiply on dark areas + soft-light on highlights; never hue-rotate the photo.
+ */
+.image-grade-cool-shadow,
+.image-grade-cool-highlight {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.image-grade-cool-shadow {
+  mix-blend-mode: multiply;
+  opacity: var(--image-grade-shadow-opacity, 0.16);
+}
+
+.image-grade-cool-highlight {
+  mix-blend-mode: soft-light;
+  opacity: var(--image-grade-highlight-opacity, 0.22);
+}
+
+/* Hero — blue light from upper-right (sky), cool shadow on lower-left */
+.image-grade-cool-highlight-hero {
+  background: radial-gradient(
+    ellipse 85% 65% at 78% 8%,
+    rgb(141 174 240 / 0.7) 0%,
+    rgb(93 130 240 / 0.25) 42%,
+    transparent 68%
+  );
+}
+
+.image-grade-cool-shadow-hero {
+  background: linear-gradient(
+    125deg,
+    transparent 48%,
+    rgb(21 34 74 / 0.35) 78%,
+    rgb(12 20 40 / 0.45) 100%
+  );
+}
+
+/* Cards — gentle top light + bottom shadow (faces usually mid-frame) */
+.image-grade-cool-highlight-card {
+  background: radial-gradient(
+    ellipse 110% 75% at 50% -5%,
+    rgb(147 174 240 / 0.55) 0%,
+    rgb(93 130 240 / 0.15) 38%,
+    transparent 62%
+  );
+}
+
+.image-grade-cool-shadow-card {
+  background: linear-gradient(
+    to top,
+    rgb(21 34 74 / 0.4) 0%,
+    rgb(21 34 74 / 0.12) 28%,
+    transparent 52%
+  );
+}
+
+.image-grade-scrim-hero,
+.bg-hero-overlay,
+.bg-hero-scrim {
+  background:
+    radial-gradient(
+      ellipse 95% 85% at 62% 42%,
+      transparent 44%,
+      rgb(12 20 40 / 0.16) 100%
+    ),
+    linear-gradient(
+      105deg,
+      rgb(12 20 40 / 0.5) 0%,
+      rgb(12 20 40 / 0.2) 42%,
+      rgb(12 20 40 / 0.05) 68%,
+      transparent 88%
+    );
+}
+
+.image-grade-scrim-card {
+  background: linear-gradient(
+    to top,
+    rgb(12 20 40 / 0.72) 0%,
+    rgb(12 20 40 / 0.38) 32%,
+    rgb(12 20 40 / 0.1) 55%,
+    transparent 76%
+  );
+}
+
+/** Full-width ministries banner — blue wash on left; right stays clearer for photo subjects */
+.get-connected-more-overlay {
+  background:
+    linear-gradient(
+      90deg,
+      rgb(12 20 40 / 0.92) 0%,
+      rgb(21 34 74 / 0.78) 26%,
+      rgb(42 67 144 / 0.42) 42%,
+      rgb(65 105 225 / 0.2) 58%,
+      transparent 72%
+    );
+}
+
+.text-on-hero {
+  color: var(--color-ink-inverse);
+}
+
+.text-on-hero-muted {
+  color: rgb(248 250 252 / 0.82);
+}
+
+.text-on-hero-subtle {
+  color: rgb(248 250 252 / 0.65);
 }

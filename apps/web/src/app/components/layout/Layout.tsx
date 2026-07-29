@@ -1,6 +1,7 @@
 import { A, useLocation } from "@solidjs/router";
 import { ParentProps } from "solid-js";
 import { Navbar } from "@church/ui/navbar";
+import { SiteFooter } from "@church/ui/site-footer";
 import { siteContent } from "~/content/site.content";
 import { session } from "~/app/stores/session";
 
@@ -22,6 +23,7 @@ export function Layout(props: ParentProps) {
         cta={siteContent.nav.signIn}
         userEmail={session.user?.email ?? null}
         variant={isHome() ? "transparent" : "solid"}
+        tone={isHome() ? "light" : "dark"}
         Link={(linkProps) => (
           <A href={linkProps.href} class={linkProps.class} onClick={linkProps.onClick}>
             {linkProps.children}
@@ -30,11 +32,19 @@ export function Layout(props: ParentProps) {
       />
       <main
         classList={{
-          "mx-auto max-w-5xl px-4 py-8": !isHome(),
+          "mx-auto max-w-page px-4 py-8 lg:px-10": !isHome(),
         }}
       >
         {props.children}
       </main>
+      <SiteFooter
+        churchName={siteContent.footer.churchName}
+        logo={siteContent.footer.logo}
+        g12Logo={siteContent.footer.g12Logo}
+        contact={siteContent.footer.contact}
+        social={[...(siteContent.footer.social ?? [])]}
+        copyright={siteContent.footer.copyright}
+      />
     </div>
   );
 }

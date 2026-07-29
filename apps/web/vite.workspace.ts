@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
 import type { Plugin, UserConfig } from "vite";
@@ -33,17 +34,73 @@ function fileFingerprint(file: string): string {
 
 /** Map @church/ui exports to source files so Vite HMR watches packages/ui directly. */
 export function churchUiAliases(monorepoRoot: string): Record<string, string> {
-  const uiSrc = path.resolve(monorepoRoot, UI_PKG, "src");
-  return {
-    "@church/ui/button": path.join(uiSrc, "components/Button.tsx"),
-    "@church/ui/navbar": path.join(uiSrc, "components/Navbar.tsx"),
-    "@church/ui/hero": path.join(uiSrc, "components/Hero.tsx"),
-    "@church/ui/hero-preview-card": path.join(uiSrc, "components/HeroPreviewCard.tsx"),
-    "@church/ui/trust-strip": path.join(uiSrc, "components/TrustStrip.tsx"),
-    "@church/ui/page-shell": path.join(uiSrc, "components/PageShell.tsx"),
-    "@church/ui/styles.css": path.join(uiSrc, "styles.css"),
-    "@church/ui/tokens.css": path.join(uiSrc, "tokens.css"),
+  const uiRoot = path.resolve(monorepoRoot, UI_PKG);
+  const pkgPath = path.join(uiRoot, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
+    exports?: Record<string, string>;
   };
+
+  const aliases: Record<string, string> = {};
+
+  for (const [exportKey, exportPath] of Object.entries(pkg.exports ?? {})) {
+    if (!exportKey.startsWith("./") || typeof exportPath !== "string") continue;
+    const subpath = `@church/ui/${exportKey.slice(2)}`;
+    aliases[subpath] = path.join(uiRoot, exportPath.replace(/^\.\//, ""));
+  }
+
+  return aliases;
+}
+
+/** Resolve @church/ui/* before Node export-map validation (pnpm workspace + Vite 6). */
+export function churchUiResolve(monorepoRoot: string): Plugin {
+  const uiRoot = path.resolve(monorepoRoot, UI_PKG);
+  const pkgPath = path.join(uiRoot, "package.json");
+
+  const resolveExport = (source: string): string | null => {
+    if (!source.startsWith("@church/ui/")) return null;
+
+    const exportKey = `./${source.slice("@church/ui/".length)}`;
+    let pkg: { exports?: Record<string, string> };
+    try {
+      pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
+        exports?: Record<string, string>;
+      };
+    } catch {
+      return null;
+    }
+
+    const exportPath = pkg.exports?.[exportKey];
+    if (typeof exportPath !== "string") return null;
+
+    return path.join(uiRoot, exportPath.replace(/^\.\//, ""));
+  };
+
+  return {
+    name: "church-ui-resolve",
+    enforce: "pre",
+    resolveId(source) {
+      return resolveExport(source);
+    },
+  };
+}
+
+/**
+ * UI source is aliased into the web app; deps like motion-solid must resolve from @church/web.
+ */
+export function uiDependencyAliases(webRoot: string): Record<string, string> {
+  const require = createRequire(path.join(webRoot, "package.json"));
+  const packages = ["motion-solid", "motion-dom"] as const;
+  const aliases: Record<string, string> = {};
+
+  for (const name of packages) {
+    try {
+      aliases[name] = path.dirname(require.resolve(`${name}/package.json`));
+    } catch {
+      // motion-dom is transitive — alias only when pnpm exposes it to @church/web
+    }
+  }
+
+  return aliases;
 }
 
 /** ponytail: content-hash poll — Docker Desktop on Windows often skips mtime updates on bind mounts. */
@@ -146,6 +203,19 @@ export function dockerDevWatch(): UserConfig["server"] {
         "**/dist/**",
         "**/.turbo/**",
       ],
+    },
+  };
+}
+
+/** New files dropped into public/ while the dev server is running (common in Docker on Windows). */
+export function watchPublicDir(publicDir: string): Plugin {
+  return {
+    name: "watch-public-dir",
+    apply: "serve",
+    configureServer(server) {
+      if (fs.existsSync(publicDir)) {
+        server.watcher.add(publicDir);
+      }
     },
   };
 }

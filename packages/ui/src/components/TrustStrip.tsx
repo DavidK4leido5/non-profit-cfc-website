@@ -1,4 +1,6 @@
 import { For } from "solid-js";
+import { motion } from "motion-solid";
+import { easeOut, fadeUpItem, fadeUpStagger, viewportOnce } from "../motion/presets";
 
 export type TrustStripItem = {
   value: string;
@@ -13,28 +15,38 @@ export type TrustStripProps = {
 
 export function TrustStrip(props: TrustStripProps) {
   return (
-    <section class={`border-t border-border bg-surface-subtle ${props.class ?? ""}`}>
-      <div class="mx-auto max-w-6xl px-4 py-10 sm:py-12 lg:px-8">
+    <motion.section
+      class={`border-t border-border bg-surface-subtle ${props.class ?? ""}`}
+      initial="initial"
+      whileInView="animate"
+      viewport={viewportOnce}
+      variants={fadeUpStagger}
+    >
+      <div class="mx-auto max-w-page px-4 py-10 sm:py-12 lg:px-10">
         {props.title && (
-          <p class="text-ink-subtle mb-6 text-center text-xs font-medium uppercase tracking-wider sm:mb-8 sm:text-sm">
+          <motion.p
+            class="text-ink-subtle mb-6 text-center text-xs font-medium uppercase tracking-wider sm:mb-8 sm:text-sm"
+            variants={fadeUpItem}
+            transition={easeOut}
+          >
             {props.title}
-          </p>
+          </motion.p>
         )}
         <div class="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-4">
           <For each={props.items}>
             {(item) => (
-              <div class="text-center">
+              <motion.div class="text-center" variants={fadeUpItem} transition={easeOut}>
                 <p class="text-ink-heading text-xl font-semibold sm:text-2xl md:text-3xl">
                   {item.value}
                 </p>
                 <p class="text-ink-muted mt-1.5 text-xs leading-snug sm:mt-2 sm:text-sm">
                   {item.label}
                 </p>
-              </div>
+              </motion.div>
             )}
           </For>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }

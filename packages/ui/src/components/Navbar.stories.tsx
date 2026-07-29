@@ -48,10 +48,11 @@ export const TransparentOverHero: Story = {
     links: mockSiteContent.nav.links,
     cta: mockSiteContent.nav.cta,
     variant: "transparent",
+    tone: "light",
   },
   decorators: [
     (Story) => (
-      <div class="bg-hero-gradient min-h-48">
+      <div class="bg-brand-900 min-h-48">
         <Story />
       </div>
     ),

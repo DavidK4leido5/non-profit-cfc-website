@@ -25,6 +25,31 @@ export const Default: Story = {
     subcopy: hero.subcopy,
     primaryCta: hero.primaryCta,
     secondaryCta: hero.secondaryCta,
+    background: hero.background,
+    badge: hero.badge,
+    stats: [...hero.stats],
+  },
+};
+
+export const TextOnly: Story = {
+  args: {
+    eyebrow: hero.eyebrow,
+    headline: hero.headline,
+    subcopy: hero.subcopy,
+    primaryCta: hero.primaryCta,
+    secondaryCta: hero.secondaryCta,
+    background: hero.background,
+  },
+};
+
+export const WithPreviewCard: Story = {
+  args: {
+    eyebrow: hero.eyebrow,
+    headline: hero.headline,
+    subcopy: hero.subcopy,
+    primaryCta: hero.primaryCta,
+    secondaryCta: hero.secondaryCta,
+    background: hero.background,
     preview: (
       <HeroPreviewCard
         imageSrc={hero.preview.imageSrc}
@@ -36,28 +61,13 @@ export const Default: Story = {
   },
 };
 
-export const TextOnly: Story = {
-  args: {
-    eyebrow: hero.eyebrow,
-    headline: hero.headline,
-    subcopy: hero.subcopy,
-    primaryCta: hero.primaryCta,
-    secondaryCta: hero.secondaryCta,
-  },
-};
-
 export const SingleCta: Story = {
   args: {
     eyebrow: hero.eyebrow,
     headline: hero.headline,
     subcopy: hero.subcopy,
     primaryCta: hero.primaryCta,
-    preview: (
-      <HeroPreviewCard
-        imageSrc={hero.preview.imageSrc}
-        imageAlt={hero.preview.imageAlt}
-        badge={hero.preview.badge}
-      />
-    ),
+    background: hero.background,
+    badge: hero.badge,
   },
 };

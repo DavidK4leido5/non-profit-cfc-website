@@ -4,7 +4,7 @@ export function AdminPage() {
   return (
     <PageShell
       title="Admin"
-      description="Manage announcements and resources here once admin auth is wired up."
+      description="Manage upcoming activities, ministries, and site content here once admin auth is wired up. Activity tiles and bento grid layout will be editable from this page."
     />
   );
 }
