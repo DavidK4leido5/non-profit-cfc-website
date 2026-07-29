@@ -1,10 +1,9 @@
-# Render Blueprint — free static site for @church/web (Turborepo monorepo)
-# Connect repo: https://dashboard.render.com → New → Blueprint → this repo
+# Render Blueprint — static site for @church/web (Turborepo monorepo)
+# Static sites are free by default — do NOT set `plan` (that field is for web services only).
 services:
   - type: web
     name: cfc-church-web
     runtime: static
-    plan: free
     branch: master
     buildCommand: >-
       corepack enable &&
@@ -12,7 +11,8 @@ services:
       pnpm install --frozen-lockfile &&
       pnpm exec turbo run build --filter=@church/web
     staticPublishPath: apps/web/dist
-    pullRequestPreviewsEnabled: true
+    previews:
+      generation: automatic
     routes:
       - type: rewrite
         source: /*
