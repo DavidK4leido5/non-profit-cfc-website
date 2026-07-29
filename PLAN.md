@@ -37,13 +37,12 @@ This project is a church website with three core capabilities:
 
 ### Architectural Stance
 
-The system is a **three-service monorepo** orchestrated by **Turborepo** (pnpm workspaces):
+The system is a **two-service monorepo** orchestrated by **Turborepo** (pnpm workspaces):
 
-1. **SolidJS SPA** — public UI, admin UI, client-side routing
-2. **Go REST API** — business logic, authorization enforcement, Cloudinary signed uploads
-3. **Better Auth service (Node/TS)** — authentication only; shares the Neon database
+1. **SolidJS SPA** — public UI, admin UI, client-side routing, login/register forms
+2. **Go REST API** — authentication, business logic, authorization, Cloudinary signed uploads
 
-Better Auth is JavaScript-native and does not ship a Go SDK. Rather than reimplementing auth in Go, we run Better Auth as a **dedicated auth microservice** that owns login, registration, sessions, and password flows. The Go API **validates sessions against the shared PostgreSQL session table** (same database Better Auth writes to). This avoids duplicating auth logic while keeping business rules in Go.
+Authentication is implemented **entirely in Go** using the standard library (`net/http`, `crypto/rand`, `crypto/subtle`, cookies) plus `golang.org/x/crypto/bcrypt` for password hashing. No separate auth service and no third-party auth framework. Sessions are stored in Neon PostgreSQL and validated by Go middleware on every protected route.
 
 ### Key Non-Functional Goals
 
@@ -55,9 +54,19 @@ Better Auth is JavaScript-native and does not ship a Go SDK. Rather than reimple
 | Uptime | 99.5% (free-tier hosting acceptable for v1) |
 | Data residency | US/EU via Neon region selection |
 
+### Deployment Stance
+
+| Environment | Platform | Notes |
+|---|---|---|
+| **Local dev** | Docker Compose + Compose Watch | All dev servers in containers; `node_modules` in Docker volumes only |
+| **Production** | **Google Cloud Run** (recommended for both web + API) | Container images from Artifact Registry; avoids Render cold starts |
+| **Production (alt)** | Render (frontend only) | Possible but cold starts on free tier; not recommended if UX matters |
+
+Neon and Cloudinary remain external managed services in all environments.
+
 ### Recommended Repo Strategy
 
-**Monorepo** (`church-page/`) with separate deployable apps, orchestrated by **Turborepo** on top of **pnpm workspaces**. Turborepo provides task pipelines (`dev`, `build`, `test`, `lint`), dependency-aware caching, and parallel execution across `apps/web`, `apps/auth`, and shared packages. Go (`apps/api`) participates via Turborepo tasks that wrap `go` commands. Split repos only if multiple teams own auth vs. API independently (unlikely here).
+**Monorepo** (`church-page/`) with separate deployable apps, orchestrated by **Turborepo** on top of **pnpm workspaces**. Turborepo provides task pipelines (`dev`, `build`, `test`, `lint`), dependency-aware caching, and parallel execution across `apps/web` and `apps/api`. Go participates via Turborepo tasks that wrap `go` commands.
 
 ---
 
@@ -77,8 +86,7 @@ flowchart TB
     end
 
     subgraph Hosting["Application Hosting"]
-        AUTH["Auth Service<br/>Better Auth (Node/Bun)<br/>/api/auth/*"]
-        API["Go REST API<br/>/api/v1/*"]
+        API["Go REST API<br/>/api/v1/*<br/>(auth + business logic)"]
     end
 
     subgraph Data["Neon PostgreSQL"]
@@ -86,10 +94,8 @@ flowchart TB
         DB[(PostgreSQL)]
     end
 
-    SPA -->|"Login / Register / OAuth"| AUTH
-    SPA -->|"CRUD + reads<br/>Cookie: session"| API
-    AUTH -->|"Read/Write sessions,<br/>users, accounts"| POOL
-    API -->|"Validate session,<br/>business data"| POOL
+    SPA -->|"Login, CRUD, reads<br/>Cookie: session"| API
+    API -->|"Sessions, users,<br/>announcements, resources"| POOL
     POOL --> DB
 
     SPA -->|"Direct upload<br/>(signed URL from Go)"| CDN
@@ -124,15 +130,14 @@ sequenceDiagram
 sequenceDiagram
     participant A as Admin (Browser)
     participant SPA as SolidJS SPA
-    participant AUTH as Better Auth
     participant API as Go API
     participant DB as Neon PostgreSQL
     participant CL as Cloudinary
 
     A->>SPA: Login
-    SPA->>AUTH: POST /api/auth/sign-in/email
-    AUTH->>DB: Create session
-    AUTH-->>SPA: Set-Cookie: session_token
+    SPA->>API: POST /api/v1/auth/login
+    API->>DB: Verify password, create session
+    API-->>SPA: Set-Cookie: church_session (HttpOnly)
 
     A->>SPA: Create announcement + upload image
     SPA->>API: POST /api/v1/uploads/sign (cookie)
@@ -141,7 +146,7 @@ sequenceDiagram
     SPA->>CL: POST upload (direct)
     CL-->>SPA: public_id, secure_url
 
-    SPA->>API: POST /api/v1/announcements (cookie)
+    SPA->>API: POST /api/v1/admin/announcements (cookie)
     API->>DB: Validate session + admin role
     API->>DB: INSERT announcement
     API-->>SPA: 201 Created
@@ -151,24 +156,25 @@ sequenceDiagram
 
 | Component | Owns | Does NOT Own |
 |---|---|---|
-| **SolidJS SPA** | Routing, UI state, form validation (client), optimistic UI, calling APIs | Business authorization, direct DB access, unsigned Cloudinary uploads |
-| **Better Auth service** | Sign-up, sign-in, sign-out, password reset, OAuth, session creation/deletion, email verification hooks | Announcements, resources, role assignment (except reading user record) |
-| **Go REST API** | Announcements CRUD, resources CRUD, role checks, signed upload URLs, audit logging | Password hashing, OAuth token exchange |
+| **SolidJS SPA** | Routing, UI state, form validation (client), login/register forms, calling Go API | Password hashing, session creation, direct DB access, unsigned Cloudinary uploads |
+| **Go REST API** | Auth (register, login, logout, sessions), announcements CRUD, resources CRUD, role checks, signed upload URLs, audit logging | — |
 | **Neon PostgreSQL** | Source of truth for users, sessions, roles, announcements, resources, audit | File/image bytes |
 | **Cloudinary** | Image transformation, CDN delivery, raw file storage | Metadata, access control (enforced by Go + signed URLs) |
 
-### 2.5 Integration Pattern: Better Auth + Go
+### 2.5 Authentication Approach (Go stdlib)
 
-**Decision: Shared-database session validation (recommended for v1)**
+**Decision: Session-based auth in Go with Postgres backing store**
 
-| Approach | Pros | Cons | Verdict |
-|---|---|---|---|
-| **Shared DB session lookup** | Simple, no extra network hop, Better Auth stays canonical | Go must track Better Auth schema changes | ✅ **Chosen** |
-| JWT plugin + Go JWT validation | Stateless validation, fast | Token revocation harder, plugin config overhead | Fallback for mobile/API clients later |
-| Go calls Auth service per request | Loose coupling | Latency, auth service becomes SPOF on every request | Overkill for v1 |
-| Reimplement auth in Go | Full control in one language | Duplicates Better Auth features, security risk | ❌ Rejected |
+| Concern | Implementation |
+|---|---|
+| Password hashing | `golang.org/x/crypto/bcrypt` (Cost 12) |
+| Session token | 32 bytes from `crypto/rand`, base64url-encoded |
+| Session storage | `session` table in Neon; HttpOnly cookie |
+| Token comparison | `crypto/subtle.ConstantTimeCompare` |
+| Cookie flags | `HttpOnly`, `SameSite=Lax`, `Secure` in production |
+| CSRF | Double-submit cookie or `SameSite=Lax` + POST-only mutations for v1 |
 
-Go middleware reads the `session` cookie, queries the `session` table (Better Auth schema), joins `user`, loads role from `user_roles`, and attaches identity to request context.
+Go middleware reads the session cookie, loads the session + user + roles from Postgres, and attaches identity to request context. All auth and business routes live on the same origin (`/api/v1/*`), simplifying cookies and CORS.
 
 ---
 
@@ -244,25 +250,26 @@ config.MaxConnIdleTime = 5 * time.Minute
 - Connection pooling: https://neon.tech/docs/connect/connection-pooling
 - Go guide: https://neon.tech/docs/guides/go
 
-### 3.4 Authentication — Better Auth
+### 3.4 Authentication — Go (stdlib + x/crypto)
 
-Better Auth is a TypeScript authentication library/framework. It is **not** a Go library. Integration strategy:
-
-| Layer | Technology | Role |
-|---|---|---|
-| Auth service | Node 20+ or Bun, Hono/Fastify | Hosts Better Auth handler at `/api/auth/*` |
-| Session storage | Neon PostgreSQL (Better Auth adapter) | Shared with Go |
-| Session validation | Go middleware | Reads `session` + `user` tables |
-| Client | Better Auth client (`better-auth/solid` or `better-auth/client`) | Login UI, session state in SPA |
+| Item | Choice |
+|---|---|
+| HTTP | `net/http` + `chi` router |
+| Password hashing | `golang.org/x/crypto/bcrypt` |
+| Session tokens | `crypto/rand` + `encoding/base64` |
+| Secure compare | `crypto/subtle` |
+| Session store | Custom Postgres `session` table |
+| Cookie API | `net/http` `SetCookie` / `Cookie` |
 
 **Official documentation:**
-- Better Auth: https://www.better-auth.com/docs
-- Installation: https://www.better-auth.com/docs/installation
-- PostgreSQL adapter: https://www.better-auth.com/docs/adapters/postgresql
-- Session management: https://www.better-auth.com/docs/concepts/session-management
-- Solid integration: https://www.better-auth.com/docs/integrations/solid (check latest; may use generic client)
+- Go `net/http`: https://pkg.go.dev/net/http
+- `crypto/rand`: https://pkg.go.dev/crypto/rand
+- `crypto/subtle`: https://pkg.go.dev/crypto/subtle
+- `golang.org/x/crypto/bcrypt`: https://pkg.go.dev/golang.org/x/crypto/bcrypt
+- OWASP Session Management: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
+- OWASP Password Storage: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
 
-**Schema ownership:** Better Auth auto-creates `user`, `session`, `account`, `verification` tables. App migrations add `roles`, `user_roles`, `announcements`, `resources` — never alter Better Auth core columns without checking compatibility.
+**Schema ownership:** Go migrations own all tables: `users`, `sessions`, `roles`, `user_roles`, `announcements`, `resources`. No third-party auth schema.
 
 ### 3.5 Media & Files — Cloudinary
 
@@ -305,7 +312,7 @@ Better Auth is a TypeScript authentication library/framework. It is **not** a Go
 
 **Why Turborepo for this project:**
 
-- **Parallel dev:** `turbo dev` runs SolidJS and the auth service concurrently with correct startup order
+- **Parallel dev:** `turbo dev` runs SolidJS and Go API concurrently
 - **Dependency graph:** `packages/shared-types` builds before `apps/web` automatically via `dependsOn: ["^build"]`
 - **CI speed:** Cached `build` / `test` / `lint` outputs skip unchanged apps on PRs
 - **Go integration:** `apps/api` uses Turborepo tasks (`go build`, `go test`) alongside JS apps in one pipeline
@@ -367,11 +374,10 @@ church-page/
 │   │   │   │   │   ├── resources/
 │   │   │   │   │   └── ui/                 # Buttons, modals, etc.
 │   │   │   │   ├── lib/
-│   │   │   │   │   ├── api-client.ts       # Typed fetch to Go API
-│   │   │   │   │   ├── auth-client.ts      # Better Auth client
+│   │   │   │   │   ├── api-client.ts       # Typed fetch to Go API (auth + business)
 │   │   │   │   │   └── cloudinary-upload.ts
 │   │   │   │   ├── stores/
-│   │   │   │   │   └── session.ts          # Auth session signals
+│   │   │   │   │   └── session.ts          # Session state from GET /api/v1/auth/me
 │   │   │   │   └── index.tsx
 │   │   │   └── index.css
 │   │   ├── index.html
@@ -380,15 +386,7 @@ church-page/
 │   │   ├── tsconfig.json
 │   │   └── package.json
 │   │
-│   ├── auth/                         # Better Auth service (Node/Bun)
-│   │   ├── src/
-│   │   │   ├── index.ts              # Hono/Fastify server
-│   │   │   ├── auth.ts               # betterAuth({ ... }) config
-│   │   │   └── db.ts                 # Postgres pool for Better Auth
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   └── api/                          # Go REST API
+│   └── api/                          # Go REST API (auth + business logic)
 │       ├── cmd/
 │       │   └── server/
 │       │       └── main.go
@@ -402,20 +400,23 @@ church-page/
 │       │   │   └── requestid.go
 │       │   ├── handler/
 │       │   │   ├── health.go
+│       │   │   ├── auth.go             # Register, login, logout, me
 │       │   │   ├── announcements.go
 │       │   │   ├── resources.go
 │       │   │   ├── uploads.go
 │       │   │   └── users.go            # Admin role management
 │       │   ├── service/
+│       │   │   ├── auth.go             # Password verify, session create/revoke
 │       │   │   ├── announcement.go
 │       │   │   ├── resource.go
 │       │   │   ├── upload.go
-│       │   │   └── auth.go             # Session lookup logic
+│       │   │   └── user.go
 │       │   ├── repository/
 │       │   │   ├── postgres/
+│       │   │   │   ├── user.go
+│       │   │   │   ├── session.go
 │       │   │   │   ├── announcement.go
 │       │   │   │   ├── resource.go
-│       │   │   │   ├── session.go
 │       │   │   │   └── user.go
 │       │   │   └── cloudinary/
 │       │   │       └── client.go
@@ -441,9 +442,12 @@ church-page/
 │
 ├── infra/
 │   ├── docker/
-│   │   ├── Dockerfile.api
-│   │   ├── Dockerfile.auth
-│   │   └── docker-compose.yml        # Local dev: api + auth + optional local postgres
+│   │   ├── Dockerfile.dev              # Dev: Node + pnpm + turbo (SolidJS watch)
+│   │   ├── Dockerfile.api.dev          # Dev: Go + air hot reload
+│   │   ├── Dockerfile.api              # Prod: multi-stage Go binary → Cloud Run
+│   │   ├── Dockerfile.web              # Prod: nginx + Vite dist → Cloud Run
+│   │   ├── entrypoint.sh
+│   │   └── docker-compose.yml          # Local dev only (Compose Watch)
 │   └── scripts/
 │       ├── migrate.sh
 │       └── seed-dev.sh
@@ -451,7 +455,7 @@ church-page/
 ├── docs/
 │   └── adr/                          # Architecture Decision Records
 │       ├── 001-monorepo.md
-│       ├── 002-better-auth-sidecar.md
+│       ├── 002-go-session-auth.md
 │       └── 003-cloudinary-private-resources.md
 │
 ├── .github/
@@ -513,8 +517,7 @@ packages:
 | App / Package | Scripts Turborepo orchestrates |
 |---|---|
 | `apps/web` | `dev` (Vite), `build`, `test` (Vitest), `lint`, `typecheck` |
-| `apps/auth` | `dev` (Hono/Bun), `build`, `test`, `lint`, `typecheck` |
-| `apps/api` | `build` → `go build ./...`, `test` → `go test ./...`, `lint` → `golangci-lint run` |
+| `apps/api` | `dev` → `go run ./cmd/server`, `build`, `test`, `lint` |
 | `packages/shared-types` | `build` → `tsc`, `typecheck` |
 
 **Go API in Turborepo:** Add a minimal `apps/api/package.json` so Turborepo can schedule Go tasks alongside JS apps:
@@ -524,6 +527,7 @@ packages:
   "name": "@church/api",
   "private": true,
   "scripts": {
+    "dev": "go run ./cmd/server",
     "build": "go build -o bin/server ./cmd/server",
     "test": "go test ./... -race -cover",
     "lint": "golangci-lint run ./..."
@@ -534,9 +538,9 @@ packages:
 **Common commands:**
 
 ```bash
-pnpm dev                          # All apps in dev mode (web + auth + optional api)
+pnpm dev                          # SolidJS + Go API in dev mode
 turbo dev --filter=web            # SolidJS only
-turbo dev --filter=web --filter=auth
+turbo dev --filter=@church/api    # Go API only
 turbo build --filter=web          # Production build for web only
 turbo test --filter=@church/api   # Go tests only
 turbo run lint test build         # Full CI pipeline locally
@@ -560,8 +564,7 @@ handler  →  service  →  repository
 
 - **Routes** own data fetching (route loaders or `createResource`)
 - **Components** are presentational where possible
-- **lib/api-client.ts** is the single gateway to Go API
-- **lib/auth-client.ts** is the single gateway to Better Auth (never mix auth calls into api-client)
+- **lib/api-client.ts** is the single gateway to the Go API (auth and business routes)
 
 ---
 
@@ -571,34 +574,31 @@ handler  →  service  →  repository
 
 ```mermaid
 erDiagram
-    user ||--o{ session : has
-    user ||--o{ account : has
-    user ||--o{ user_roles : has
+    users ||--o{ sessions : has
+    users ||--o{ user_roles : has
     role ||--o{ user_roles : assigned
     role ||--o{ resource_role_access : grants
     resource ||--o{ resource_role_access : visible_to
-    user ||--o{ announcement : creates
+    users ||--o{ announcement : creates
     announcement ||--o| announcement : supersedes
 
-    user {
-        text id PK
+    users {
+        uuid id PK
         text name
         text email UK
-        boolean email_verified
-        text image
+        text password_hash
         timestamptz created_at
         timestamptz updated_at
     }
 
-    session {
-        text id PK
-        text user_id FK
-        text token UK
+    sessions {
+        uuid id PK
+        uuid user_id FK
+        text token_hash UK
         timestamptz expires_at
         text ip_address
         text user_agent
         timestamptz created_at
-        timestamptz updated_at
     }
 
     role {
@@ -611,10 +611,10 @@ erDiagram
 
     user_roles {
         uuid id PK
-        text user_id FK
+        uuid user_id FK
         uuid role_id FK
         timestamptz granted_at
-        text granted_by FK
+        uuid granted_by FK
     }
 
     announcement {
@@ -652,11 +652,38 @@ erDiagram
     }
 ```
 
-> **Note:** `user` and `session` tables follow Better Auth's schema. Run Better Auth migrations first, then app migrations. Column names must match Better Auth's PostgreSQL adapter expectations.
+> **Note:** All tables are owned by Go migrations. Store **hashed** session tokens in the DB (`token_hash`), never the raw cookie value.
 
-### 5.2 App-Owned Tables (SQL)
+### 5.2 Core Tables (SQL)
 
 ```sql
+-- Users
+CREATE TABLE users (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name          TEXT NOT NULL CHECK (char_length(name) BETWEEN 1 AND 100),
+    email         TEXT NOT NULL UNIQUE CHECK (char_length(email) BETWEEN 3 AND 255),
+    password_hash TEXT NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_users_email ON users(email);
+
+-- Sessions (store SHA-256 hash of cookie token, not plaintext)
+CREATE TABLE sessions (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash  TEXT NOT NULL UNIQUE,
+    expires_at  TIMESTAMPTZ NOT NULL,
+    ip_address  INET,
+    user_agent  TEXT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_sessions_token_hash ON sessions(token_hash);
+CREATE INDEX idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
+
 -- Roles (seed data)
 CREATE TABLE role (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -669,10 +696,10 @@ CREATE TABLE role (
 
 CREATE TABLE user_roles (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id    TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     role_id    UUID NOT NULL REFERENCES role(id) ON DELETE CASCADE,
     granted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    granted_by TEXT REFERENCES "user"(id),
+    granted_by UUID REFERENCES users(id),
     UNIQUE (user_id, role_id)
 );
 
@@ -688,7 +715,7 @@ CREATE TABLE announcement (
     is_published     BOOLEAN NOT NULL DEFAULT false,
     published_at     TIMESTAMPTZ,
     expires_at       TIMESTAMPTZ,     -- optional auto-hide
-    created_by       TEXT NOT NULL REFERENCES "user"(id),
+    created_by       UUID NOT NULL REFERENCES users(id),
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -706,7 +733,7 @@ CREATE TABLE resource (
     file_size_bytes   BIGINT NOT NULL CHECK (file_size_bytes > 0),
     mime_type         TEXT NOT NULL,
     is_active         BOOLEAN NOT NULL DEFAULT true,
-    uploaded_by       TEXT NOT NULL REFERENCES "user"(id),
+    uploaded_by       UUID NOT NULL REFERENCES users(id),
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -723,7 +750,7 @@ CREATE INDEX idx_resource_role_access_role ON resource_role_access(role_id);
 -- Optional: audit log for admin actions
 CREATE TABLE audit_log (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    actor_id    TEXT REFERENCES "user"(id),
+    actor_id    UUID REFERENCES users(id),
     action      TEXT NOT NULL,
     entity_type TEXT NOT NULL,
     entity_id   TEXT NOT NULL,
@@ -762,11 +789,45 @@ CREATE TABLE audit_log (
 | Errors | `{ "error": { "code": "...", "message": "..." } }` |
 | Success list | `{ "data": [...], "meta": { "total": N } }` |
 | Auth | Session cookie (HttpOnly, SameSite=Lax) |
-| IDs | UUID v4 for app entities; Better Auth uses text IDs for users |
+| IDs | UUID v4 for all entities |
 | Pagination | `?page=1&limit=20` |
 | Timestamps | ISO 8601 UTC |
 
 ### 6.2 Endpoints
+
+#### Auth
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/auth/register` | None | Create account (assigns `member` role) |
+| POST | `/auth/login` | None | Login; sets HttpOnly session cookie |
+| POST | `/auth/logout` | Session | Revoke session, clear cookie |
+| GET | `/auth/me` | Session | Current user + roles |
+
+**POST /auth/register** body:
+
+```json
+{ "name": "Jane Doe", "email": "jane@church.org", "password": "secure-password" }
+```
+
+**POST /auth/login** body:
+
+```json
+{ "email": "jane@church.org", "password": "secure-password" }
+```
+
+**GET /auth/me** response:
+
+```json
+{
+  "data": {
+    "id": "uuid",
+    "name": "Jane Doe",
+    "email": "jane@church.org",
+    "roles": ["member"]
+  }
+}
+```
 
 #### Health
 
@@ -857,15 +918,6 @@ Response:
 | GET | `/admin/users/:id/roles` | Session | `admin` |
 | PUT | `/admin/users/:id/roles` | Session | `admin` |
 
-#### Auth (Better Auth service — not Go)
-
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/auth/sign-up/email` | Register |
-| POST | `/api/auth/sign-in/email` | Login |
-| POST | `/api/auth/sign-out` | Logout |
-| GET | `/api/auth/get-session` | Current session |
-
 ---
 
 ## 7. Authentication & Authorization Flow
@@ -875,35 +927,42 @@ Response:
 ```mermaid
 sequenceDiagram
     participant SPA as SolidJS
-    participant AUTH as Better Auth (Node)
+    participant API as Go API
     participant DB as Neon PostgreSQL
 
-    SPA->>AUTH: signUp / signIn
-    AUTH->>DB: Insert/update user, create session
-    AUTH-->>SPA: Set-Cookie: better-auth.session_token (HttpOnly)
-    SPA->>AUTH: getSession()
-    AUTH-->>SPA: { user: { id, email, name } }
+    SPA->>API: POST /api/v1/auth/register
+    API->>DB: INSERT users, hash password (bcrypt)
+    API->>DB: INSERT user_roles (member)
+    API->>DB: INSERT sessions
+    API-->>SPA: Set-Cookie: church_session (HttpOnly)
+
+    SPA->>API: GET /api/v1/auth/me
+    API->>DB: Validate session cookie hash
+    API-->>SPA: { user, roles }
 ```
 
-**Post-registration hook (Better Auth):** Assign default `member` role in `user_roles` via Better Auth `databaseHooks.user.create.after` callback.
+**Post-registration:** Go service assigns default `member` role in the same transaction as user creation.
 
-### 7.2 Go Session Validation Middleware
+### 7.2 Session Validation Middleware
 
 ```
-1. Read cookie `better-auth.session_token` (exact name from Better Auth config)
+1. Read cookie `church_session`
 2. If missing → 401 Unauthorized (or pass through for public routes)
-3. Query:
+3. SHA-256 hash the cookie value → token_hash
+4. Query:
      SELECT s.user_id, s.expires_at, u.email, u.name
-     FROM session s
-     JOIN "user" u ON u.id = s.user_id
-     WHERE s.token = $1 AND s.expires_at > now()
-4. If no row → 401
-5. Load roles:
+     FROM sessions s
+     JOIN users u ON u.id = s.user_id
+     WHERE s.token_hash = $1 AND s.expires_at > now()
+5. If no row → 401; clear invalid cookie
+6. Load roles:
      SELECT r.slug FROM user_roles ur
      JOIN role r ON r.id = ur.role_id
      WHERE ur.user_id = $1
-6. Attach UserContext { ID, Email, Name, Roles []string } to request context
+7. Attach UserContext { ID, Email, Name, Roles []string } to request context
 ```
+
+**Login issues new session token; logout deletes session row.** Optionally rotate session ID on privilege change.
 
 ### 7.3 Authorization Helpers (Go)
 
@@ -931,25 +990,24 @@ SELECT EXISTS (
 | Setting | Development | Production |
 |---|---|---|
 | Web origin | `http://localhost:5173` | `https://church.example.org` |
-| API origin | `http://localhost:8080` | `https://api.church.example.org` |
-| Auth origin | `http://localhost:3001` | `https://auth.church.example.org` |
-| Cookie domain | `localhost` (or omit) | `.church.example.org` (shared parent) |
+| API origin | `http://localhost:8080` | `https://church.example.org` (same origin via proxy) or `https://api.church.example.org` |
+| Cookie name | `church_session` | `church_session` |
+| Cookie domain | `localhost` (or omit) | `.church.example.org` if cross-subdomain |
 | SameSite | `Lax` | `Lax` |
 | Secure | false | true |
 
-**Critical:** For cross-subdomain cookies, set Better Auth `advanced.cookiePrefix` and shared `domain: ".church.example.org"`. Go API must accept credentials (`Access-Control-Allow-Credentials: true`).
+Go API must set `Access-Control-Allow-Credentials: true` and an explicit `Allow-Origin` (not `*`) when SPA and API are on different origins during local dev.
 
-### 7.5 Alternative: Reverse Proxy Unified Origin
-
-To simplify cookies in v1, put all services behind one origin via reverse proxy:
+### 7.4 Recommended: Single-Origin via Reverse Proxy
 
 ```
-https://church.example.org/           → SolidJS static
-https://church.example.org/api/auth/  → Auth service
-https://church.example.org/api/v1/    → Go API
+https://church.example.org/           → Cloud Run (web — nginx static)
+https://church.example.org/api/v1/    → Cloud Run (Go API)
 ```
 
-This avoids cross-origin cookie issues entirely. **Recommended for production v1.**
+Use a **Google Cloud HTTP(S) Load Balancer** with path-based routing to two Cloud Run backends for single-origin cookies. Alternative v1: `api.church.example.org` subdomain with `Cookie-Domain=.church.example.org`.
+
+Auth and business routes share `/api/v1/*` on the Go Cloud Run service.
 
 ---
 
@@ -966,25 +1024,22 @@ This avoids cross-origin cookie issues entirely. **Recommended for production v1
 | 0.1 | Initialize monorepo: pnpm workspaces + Turborepo (`turbo.json`, root scripts) |
 | 0.2 | Add `pnpm-workspace.yaml` (`apps/*`, `packages/*`) and root `package.json` |
 | 0.3 | Scaffold SolidJS app with Vite, router, Tailwind (`apps/web`) |
-| 0.4 | Scaffold Go API with chi, health endpoints, config loading (`apps/api` + minimal `package.json` for Turbo) |
-| 0.5 | Scaffold Better Auth service with Hono + Neon adapter (`apps/auth`) |
-| 0.6 | Configure Turborepo pipeline: `dev`, `build`, `test`, `lint`, `typecheck` with `dependsOn: ["^build"]` |
-| 0.7 | Create Neon project; configure pooled + direct connection strings |
-| 0.8 | Set up `golang-migrate` with initial empty migration |
-| 0.9 | Docker Compose for local dev (api + auth; Neon cloud for DB) |
-| 0.10 | `.env.example` with all required variables |
-| 0.11 | GitHub Actions: `turbo run lint test build` on PR |
-| 0.12 | README with local setup instructions (`pnpm install`, `pnpm dev`) |
+| 0.4 | Scaffold Go API with chi, health endpoints, config loading, auth skeleton (`apps/api`) |
+| 0.5 | Configure Turborepo pipeline: `dev`, `build`, `test`, `lint`, `typecheck` |
+| 0.6 | Create Neon project; configure pooled + direct connection strings |
+| 0.7 | Set up `golang-migrate` with initial migration (users, sessions, roles) |
+| 0.8 | Docker Compose + Compose Watch for local dev (`web` + `api` services; no host `node_modules`) |
+| 0.9 | `.env.example` with all required variables |
+| 0.10 | GitHub Actions: `turbo run lint test build` on PR |
+| 0.11 | README with local setup instructions |
 
 **Acceptance criteria:**
 
-- [ ] `pnpm dev` (via Turborepo) starts SolidJS on `:5173` and auth service concurrently
-- [ ] `turbo build` succeeds for all workspace packages
-- [ ] `turbo test` runs Go and JS tests in dependency order
-- [ ] Go API responds `200` on `/health`
-- [ ] Auth service responds on `/api/auth/ok` or Better Auth health
-- [ ] Go API connects to Neon via pooler (`/ready` returns OK)
-- [ ] CI pipeline runs `turbo run lint test build` and passes on empty commit
+- [ ] `docker compose watch` starts SolidJS on `:5173` and Go API on `:8080` in containers
+- [ ] `turbo build` succeeds for web and api
+- [ ] Go API responds `200` on `/health` and `/ready`
+- [ ] Go API connects to Neon via pooler
+- [ ] CI pipeline runs `turbo run lint test build` and passes
 
 **Estimated complexity:** **Low–Medium** (2–3 days)
 
@@ -998,24 +1053,24 @@ This avoids cross-origin cookie issues entirely. **Recommended for production v1
 
 | # | Task |
 |---|---|
-| 1.1 | Configure Better Auth (email/password, session config, PostgreSQL adapter) |
-| 1.2 | Run Better Auth schema migration against Neon |
-| 1.3 | App migration: `role`, `user_roles` tables + seed roles |
-| 1.4 | Better Auth hook: assign `member` role on user creation |
-| 1.5 | SolidJS login/register pages using Better Auth client |
-| 1.6 | Session store in SPA; protected route wrapper |
-| 1.7 | Go auth middleware: session lookup + role loading |
-| 1.8 | `GET /api/v1/me` endpoint returning user + roles |
-| 1.9 | Dev proxy or CORS config for cookies |
-| 1.10 | First admin bootstrap script (promote user to admin by email) |
+| 1.1 | Migration: `users`, `sessions`, `role`, `user_roles` + seed roles |
+| 1.2 | Go auth module: bcrypt hash, session create/revoke, token generation |
+| 1.3 | Go auth handlers: register, login, logout, me |
+| 1.4 | Go auth middleware: cookie parse, session lookup, role loading |
+| 1.5 | SolidJS login/register pages calling Go API |
+| 1.6 | Session store in SPA (`GET /auth/me` on load) |
+| 1.7 | Protected route wrapper in SolidJS |
+| 1.8 | Rate limit login/register endpoints |
+| 1.9 | CORS config for local dev (Vite → Go) |
+| 1.10 | Bootstrap script: promote first admin by email |
 
 **Acceptance criteria:**
 
 - [ ] User can register and log in via SPA
 - [ ] Session persists on page refresh
 - [ ] Logout clears session
-- [ ] Go `/me` returns 401 when unauthenticated
-- [ ] Go `/me` returns user + roles when authenticated
+- [ ] Go `/auth/me` returns 401 when unauthenticated
+- [ ] Go `/auth/me` returns user + roles when authenticated
 - [ ] New users receive `member` role automatically
 - [ ] Bootstrap script can promote first admin
 
@@ -1098,28 +1153,29 @@ This avoids cross-origin cookie issues entirely. **Recommended for production v1
 
 | # | Task |
 |---|---|
-| 4.1 | Unified reverse proxy (single origin) or subdomain cookie config |
-| 4.2 | Rate limiting on auth and upload endpoints |
-| 4.3 | Security headers (CSP, HSTS, X-Frame-Options) |
-| 4.4 | Input validation audit across all endpoints |
-| 4.5 | Error handling: no stack traces in production responses |
-| 4.6 | Structured logging + request IDs |
-| 4.7 | Deploy SolidJS to Cloudflare Pages or Netlify |
-| 4.8 | Deploy Go API to Fly.io or Railway |
-| 4.9 | Deploy Auth service to Fly.io or Railway |
-| 4.10 | Production Neon + Cloudinary accounts configured |
-| 4.11 | Database backup verification (Neon PITR on paid; export script on free) |
-| 4.12 | Enable Turborepo Remote Cache in CI (optional speedup) |
-| 4.13 | E2E smoke tests against staging |
-| 4.14 | Admin documentation (how to post announcements, manage resources) |
+| 4.1 | Production Dockerfiles: `Dockerfile.web` (nginx), `Dockerfile.api` (Go binary) |
+| 4.2 | Google Artifact Registry repo + push images via CI |
+| 4.3 | Deploy Go API to Cloud Run (min instances 0–1; pooled Neon URL) |
+| 4.4 | Deploy SolidJS static build to Cloud Run (nginx container) |
+| 4.5 | Cloud Load Balancer path routing OR subdomain cookie config |
+| 4.6 | Rate limiting on auth and upload endpoints |
+| 4.7 | Security headers (CSP, HSTS, X-Frame-Options) |
+| 4.8 | Input validation audit across all endpoints |
+| 4.9 | Error handling: no stack traces in production responses |
+| 4.10 | Structured logging + Cloud Logging integration |
+| 4.11 | Production Neon + Cloudinary accounts configured |
+| 4.12 | Database backup verification |
+| 4.13 | E2E smoke tests against staging Cloud Run URLs |
+| 4.14 | Admin documentation |
 | 4.15 | Performance pass: image lazy loading, pagination, CDN cache headers |
 
 **Acceptance criteria:**
 
-- [ ] All services deployed to production URLs
+- [ ] Web + API deployed to Cloud Run; images built from Dockerfiles in CI
+- [ ] Load balancer or subdomain routing configured for cookies
 - [ ] HTTPS everywhere; cookies marked Secure
 - [ ] CSP configured without breaking Cloudinary images
-- [ ] Rate limits active on `/api/auth/*` and `/uploads/sign/*`
+- [ ] Rate limits active on `/api/v1/auth/login`, `/auth/register`, and `/uploads/sign/*`
 - [ ] Staging environment mirrors production
 - [ ] E2E test: login → view resources → admin post announcement
 - [ ] Lighthouse performance score ≥ 85 on public board
@@ -1151,8 +1207,8 @@ This avoids cross-origin cookie issues entirely. **Recommended for production v1
 |---|---|
 | Session hijacking | HttpOnly + Secure cookies, SameSite=Lax, short session TTL (7–14 days) |
 | Brute force login | Rate limit auth endpoints (5 req/min/IP); optional CAPTCHA after failures |
-| Weak passwords | Better Auth password policy (min 8 chars); consider zxcvbn |
-| Session fixation | Better Auth handles token rotation on login |
+| Weak passwords | Min 8 chars server-side; reject common passwords list in v1 |
+| Session fixation | Issue new session token on login; delete old sessions |
 
 ### 9.2 Authorization
 
@@ -1183,7 +1239,7 @@ This avoids cross-origin cookie issues entirely. **Recommended for production v1
 ### 9.5 Secrets Management
 
 - All secrets in environment variables (never committed)
-- Cloudinary API secret **only in Go API** (never in SPA or auth service unless signing uploads)
+- Cloudinary API secret **only in Go API** (never in SPA)
 - Rotate secrets if exposed
 - Separate Cloudinary folders per environment (`church-dev/`, `church-prod/`)
 
@@ -1197,40 +1253,127 @@ This avoids cross-origin cookie issues entirely. **Recommended for production v1
 
 ## 10. Deployment Strategy
 
-### 10.1 Recommended Hosting Matrix
+### 10.0 Local Development — Docker Only
+
+**All dev servers run in Docker.** Do not install `node_modules` on the host.
+
+```bash
+# Build dev images
+docker compose -f infra/docker/docker-compose.yml build
+
+# Start with file watch (syncs source into containers)
+docker compose -f infra/docker/docker-compose.yml watch
+# or: bash scripts/dev-docker.sh
+```
+
+| Compose service | Container | Host port | Dev command |
+|---|---|---|---|
+| `web` | Node 22 + pnpm + turbo | `5173` | Vite dev server (`turbo dev --filter=web`) |
+| `api` | Go 1.22 + air (optional) | `8080` | `go run ./cmd/server` with volume mount |
+
+**Volume strategy:** bind-mount source code; named volume `church_node_modules` masks host `node_modules`.
+
+**Docs:**
+- Docker Compose Watch: https://docs.docker.com/compose/how-tos/file-watch/
+- Compose file: `infra/docker/docker-compose.yml`
+
+Production deploys use **separate production Dockerfiles** — not the dev compose stack.
+
+### 10.1 Production Hosting Matrix
 
 | Component | Recommended | Alternative | Notes |
 |---|---|---|---|
-| **SolidJS SPA** | Cloudflare Pages | Netlify, Vercel | Free tier, global CDN, easy preview deploys |
-| **Go API** | Fly.io | Railway, Render | Docker deploy, auto TLS, scale to zero on free tier (with cold starts) |
-| **Auth service** | Fly.io | Railway, Render | Same region as Go API for latency |
-| **Neon PostgreSQL** | Neon (managed) | — | Use pooler endpoint from Fly/Railway |
+| **SolidJS SPA** | **Google Cloud Run** (nginx image) | Render Static Sites | Render free tier has cold starts; Cloud Run gives one platform for both services |
+| **Go API** | **Google Cloud Run** | Render Web Service | Same project, same CI pipeline, scale-to-zero or min-instances=1 |
+| **Container registry** | Google Artifact Registry | — | Stores `church-web` and `church-api` images |
+| **Neon PostgreSQL** | Neon (managed) | — | Use **pooler** endpoint from Cloud Run |
 | **Cloudinary** | Cloudinary (managed) | — | Free tier sufficient for v1 |
-| **Reverse proxy** | Cloudflare (DNS + proxy rules) | Caddy on Fly | Single-origin routing recommended |
+| **Routing** | Cloud HTTP(S) Load Balancer | Subdomain (`api.` + `www.`) | Load balancer preferred for single-origin session cookies |
 
-### 10.2 Production Topology (Single-Origin via Cloudflare)
+**Why Cloud Run over Render for this project:**
+- One deployment model (Docker → Cloud Run) for frontend and backend
+- Avoid Render free-tier cold starts on the SPA
+- Cloud Run cold starts manageable with `min-instances: 1` on API if needed
+- Artifact Registry + `gcloud run deploy` fits container-first workflow
+
+**Official documentation:**
+- Cloud Run: https://cloud.google.com/run/docs
+- Deploy containers: https://cloud.google.com/run/docs/deploying
+- Cloud Run + Load Balancer: https://cloud.google.com/load-balancing/docs/https/setup-global-ext-https-serverless
+- Artifact Registry: https://cloud.google.com/artifact-registry/docs
+
+### 10.2 Production Topology (Cloud Run)
+
+**Recommended — single origin via Load Balancer:**
 
 ```
-church.example.org
-├── /*                    → Cloudflare Pages (SolidJS)
-├── /api/auth/*           → Fly.io auth service
-└── /api/v1/*             → Fly.io Go API
+                    ┌─────────────────────────────────────┐
+                    │  Cloud HTTP(S) Load Balancer        │
+                    │  church.example.org                 │
+                    └──────────────┬──────────────────────┘
+                                   │
+              ┌────────────────────┴────────────────────┐
+              │                                         │
+              ▼                                         ▼
+   /*  →  Cloud Run `church-web`          /api/v1/*  →  Cloud Run `church-api`
+          (nginx + Vite dist)                          (Go binary)
+              │                                         │
+              └────────────────┬────────────────────────┘
+                               ▼
+                         Neon PostgreSQL
+                         Cloudinary CDN
 ```
 
-Cloudflare Page Rules or Workers route paths to backends while the browser sees one origin.
+**Simpler v1 — subdomains (no load balancer):**
 
-### 10.3 CI/CD Pipeline
+```
+https://church.example.org      → Cloud Run `church-web`
+https://api.church.example.org  → Cloud Run `church-api`
+```
+
+Set `SESSION_COOKIE_DOMAIN=.church.example.org` and `CORS_ORIGINS=https://church.example.org`.
+
+### 10.3 Production Docker Images
+
+| Image | Dockerfile | Base | Output |
+|---|---|---|---|
+| `church-web` | `infra/docker/Dockerfile.web` | `nginx:alpine` | `apps/web/dist` static files |
+| `church-api` | `infra/docker/Dockerfile.api` | `golang:1.22` → `distroless` | Single Go binary on `$PORT` |
+
+Cloud Run sets `PORT` (default `8080`). Go API listens on `0.0.0.0:$PORT`. Nginx listens on `$PORT` via envsubst template.
+
+**Build locally (sanity check):**
+
+```bash
+docker build -f infra/docker/Dockerfile.api -t church-api .
+docker build -f infra/docker/Dockerfile.web -t church-web .
+```
+
+### 10.4 CI/CD Pipeline
 
 ```mermaid
 flowchart LR
     PR[Pull Request] --> CI[GitHub Actions]
-    CI --> Turbo["turbo run lint test build<br/>(remote cache optional)"]
+    CI --> Turbo["turbo run lint test build"]
     Turbo --> Merge[Merge to main]
     Merge --> Deploy[Deploy workflow]
-    Deploy --> Pages[Cloudflare Pages]
-    Deploy --> FlyAPI[Fly.io Go API]
-    Deploy --> FlyAuth[Fly.io Auth]
+    Deploy --> Build["docker build web + api"]
+    Build --> GAR[Push to Artifact Registry]
+    GAR --> RunWeb["gcloud run deploy church-web"]
+    GAR --> RunAPI["gcloud run deploy church-api"]
     Deploy --> Migrate[Run DB migrations]
+```
+
+**Deploy example (API):**
+
+```bash
+docker build -f infra/docker/Dockerfile.api -t REGION-docker.pkg.dev/PROJECT/church/api:latest .
+docker push REGION-docker.pkg.dev/PROJECT/church/api:latest
+gcloud run deploy church-api \
+  --image REGION-docker.pkg.dev/PROJECT/church/api:latest \
+  --region us-central1 \
+  --set-env-vars DATABASE_URL=...,CORS_ORIGINS=... \
+  --allow-unauthenticated
 ```
 
 **CI example (`.github/workflows/ci.yml`):**
@@ -1240,28 +1383,28 @@ flowchart LR
 - run: pnpm install --frozen-lockfile
 - run: turbo run lint test build
   env:
-    TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}   # optional remote cache
+    TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 ```
 
-**Migration strategy:** Run migrations as a CI step **before** deploying new API version (backward-compatible migrations only). Use expand/contract pattern for breaking schema changes.
+**Migration strategy:** Run migrations as a CI step **before** deploying new API revision (backward-compatible migrations only).
 
-### 10.4 Environment Separation
+### 10.5 Environment Separation
 
 | Environment | Neon branch | Cloudinary folder | Purpose |
 |---|---|---|---|
 | `development` | dev branch | `church-dev/` | Local + preview |
-| `staging` | staging branch | `church-staging/` | Pre-prod testing |
-| `production` | main branch | `church-prod/` | Live site |
+| `staging` | staging branch | `church-staging/` | Cloud Run staging services |
+| `production` | main branch | `church-prod/` | Cloud Run production services |
 
 Neon supports database branching — ideal for preview/staging isolation.
 
-### 10.5 Monitoring & Observability (v1 minimum)
+### 10.6 Monitoring & Observability (v1 minimum)
 
 | Tool | Purpose | Cost |
 |---|---|---|
-| Fly.io metrics / Railway logs | API/auth logs | Free tier |
-| Cloudflare Analytics | Traffic, cache hit rate | Free |
+| Google Cloud Logging | Cloud Run stdout/stderr | Free tier allowance |
+| Google Cloud Monitoring | Cloud Run metrics, uptime | Free tier |
 | Neon dashboard | Connection count, query latency | Free |
 | Cloudinary dashboard | Storage, bandwidth, credits | Free |
 | UptimeRobot or Better Stack | External uptime checks | Free tier |
@@ -1274,25 +1417,13 @@ Neon supports database branching — ideal for preview/staging isolation.
 
 | Variable | Required | Example | Description |
 |---|---|---|---|
-| `VITE_API_BASE_URL` | Yes | `/api/v1` or `http://localhost:8080/api/v1` | Go API base URL |
-| `VITE_AUTH_BASE_URL` | Yes | `/api/auth` or `http://localhost:3001/api/auth` | Better Auth base URL |
+| `VITE_API_BASE_URL` | Yes | `/api/v1` or `http://localhost:8080/api/v1` | Go API base URL (includes auth routes) |
 | `VITE_CLOUDINARY_CLOUD_NAME` | Yes | `my-church` | For building image URLs client-side |
 | `VITE_APP_NAME` | No | `Grace Church` | Display name |
 
-> **Never** put Cloudinary API secret or Neon credentials in `VITE_*` variables.
+> **Never** put Cloudinary API secret, session secrets, or Neon credentials in `VITE_*` variables.
 
-### 11.2 Auth Service (`apps/auth/.env`)
-
-| Variable | Required | Example | Description |
-|---|---|---|---|
-| `DATABASE_URL` | Yes | `postgresql://...@ep-xxx.neon.tech/neondb?sslmode=require` | Direct or pooled Neon URL |
-| `BETTER_AUTH_SECRET` | Yes | `(32+ byte random)` | Session signing secret |
-| `BETTER_AUTH_URL` | Yes | `http://localhost:3001` | Auth service public URL |
-| `TRUSTED_ORIGINS` | Yes | `http://localhost:5173` | CORS allowed origins (comma-separated) |
-| `PORT` | No | `3001` | Server port |
-| `NODE_ENV` | No | `development` | Environment |
-
-### 11.3 Go API (`apps/api/.env`)
+### 11.2 Go API (`apps/api/.env`)
 
 | Variable | Required | Example | Description |
 |---|---|---|---|
@@ -1301,7 +1432,9 @@ Neon supports database branching — ideal for preview/staging isolation.
 | `PORT` | No | `8080` | Server port |
 | `ENV` | No | `development` | `development` / `staging` / `production` |
 | `CORS_ORIGINS` | Yes | `http://localhost:5173` | Allowed origins |
-| `SESSION_COOKIE_NAME` | Yes | `better-auth.session_token` | Must match Better Auth config |
+| `SESSION_COOKIE_NAME` | No | `church_session` | HttpOnly session cookie name |
+| `SESSION_TTL_HOURS` | No | `168` | Session lifetime (7 days) |
+| `BCRYPT_COST` | No | `12` | bcrypt work factor |
 | `CLOUDINARY_CLOUD_NAME` | Yes | `my-church` | Cloudinary cloud name |
 | `CLOUDINARY_API_KEY` | Yes | `123456789012345` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Yes | `(secret)` | For signing uploads/downloads |
@@ -1314,10 +1447,10 @@ Neon supports database branching — ideal for preview/staging isolation.
 | Secret | Used by |
 |---|---|
 | `NEON_DATABASE_URL` | Migrations |
-| `FLY_API_TOKEN` | Fly.io deploy |
-| `CLOUDFLARE_API_TOKEN` | Pages deploy |
+| `GCP_PROJECT_ID` | Cloud Run deploy |
+| `GCP_SA_KEY` or Workload Identity | Cloud Run deploy |
+| `ARTIFACT_REGISTRY` | Docker push |
 | `CLOUDINARY_*` | Staging/prod API deploy |
-| `BETTER_AUTH_SECRET` | Auth service deploy |
 | `TURBO_TOKEN` | Turborepo remote cache (optional) |
 | `TURBO_TEAM` | Turborepo team slug (optional) |
 
@@ -1328,16 +1461,13 @@ Neon supports database branching — ideal for preview/staging isolation.
 DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require
 DATABASE_MIGRATE_URL=postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=require
 
-# === Better Auth ===
-BETTER_AUTH_SECRET=generate-with-openssl-rand-base64-32
-BETTER_AUTH_URL=http://localhost:3001
-TRUSTED_ORIGINS=http://localhost:5173
-
 # === Go API ===
 PORT=8080
 ENV=development
 CORS_ORIGINS=http://localhost:5173
-SESSION_COOKIE_NAME=better-auth.session_token
+SESSION_COOKIE_NAME=church_session
+SESSION_TTL_HOURS=168
+BCRYPT_COST=12
 
 # === Cloudinary ===
 CLOUDINARY_CLOUD_NAME=your-cloud-name
@@ -1347,7 +1477,6 @@ CLOUDINARY_FOLDER=church-dev
 
 # === SolidJS (prefix VITE_) ===
 VITE_API_BASE_URL=http://localhost:8080/api/v1
-VITE_AUTH_BASE_URL=http://localhost:3001/api/auth
 VITE_CLOUDINARY_CLOUD_NAME=your-cloud-name
 VITE_APP_NAME=Grace Church
 ```
@@ -1387,7 +1516,7 @@ VITE_APP_NAME=Grace Church
 | Suite | Scope | Setup |
 |---|---|---|
 | API integration | Go handlers → real Postgres | Neon dev branch or testcontainers Postgres |
-| Auth integration | Better Auth signup → Go `/me` | Shared test DB, cleanup between tests |
+| Auth integration | Go register/login → `/auth/me` | Shared test DB, cleanup between tests |
 | Cloudinary | Mock Cloudinary SDK in tests | Interface-based client; real calls in staging only |
 
 **Run against Neon branch:** Create ephemeral branch per CI run for isolation (Neon branching API).
@@ -1445,9 +1574,9 @@ pnpm exec playwright test
 | ADR | Title | Decision |
 |---|---|---|
 | ADR-001 | Monorepo structure | Single repo with `apps/` and `packages/`, orchestrated by Turborepo + pnpm workspaces |
-| ADR-002 | Better Auth sidecar | Node auth service + Go session validation via shared DB |
+| ADR-002 | Go session auth | bcrypt + Postgres sessions + HttpOnly cookies; no third-party auth framework |
 | ADR-003 | Cloudinary private resources | Raw files private; signed download URLs from Go |
-| ADR-004 | Single-origin production | Cloudflare routes `/api/auth` and `/api/v1` to backends |
+| ADR-004 | Production on Cloud Run | Both web (nginx) and API (Go) as Cloud Run services; Docker images in Artifact Registry |
 | ADR-005 | Explicit resource-role mapping | No implicit role hierarchy in v1 |
 
 ---
@@ -1456,12 +1585,12 @@ pnpm exec playwright test
 
 | Feature | Notes |
 |---|---|
-| OAuth (Google) | Better Auth plugin; add in Phase 4+ |
+| OAuth (Google) | Add in Phase 4+ with Go OAuth2 (`golang.org/x/oauth2`) |
 | Email notifications | New announcement alerts via Resend/SendGrid |
 | Full-text search | Postgres `tsvector` on announcements |
 | Calendar/events | Separate module |
 | Multi-church tenancy | Would require org_id on all tables |
-| Mobile app | Better Auth JWT plugin + API tokens |
+| Mobile app | API tokens / refresh tokens in Go |
 | CMS-style page builder | Significant scope increase |
 | i18n | SolidJS i18n library + translated content columns |
 
@@ -1474,7 +1603,7 @@ pnpm exec playwright test
 | **Board** | Public announcements page |
 | **Resource** | Downloadable file gated by role |
 | **Role** | Permission group (member, volunteer, leader, admin) |
-| **Session** | Better Auth token stored in HttpOnly cookie |
+| **Session** | Opaque token in HttpOnly cookie; hash stored in Postgres |
 | **Signed URL** | Time-limited Cloudinary URL requiring signature |
 | **Pooler** | Neon PgBouncer endpoint for connection pooling |
 | **Turborepo** | Monorepo task runner; orchestrates `dev`, `build`, `test`, `lint` with caching across workspace packages |

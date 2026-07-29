@@ -1,0 +1,11 @@
+{
+  "name": "@church/api",
+  "private": true,
+  "scripts": {
+    "dev": "go run ./cmd/server",
+    "build": "go build -o bin/server ./cmd/server",
+    "test": "go test ./... -race -cover",
+    "lint": "echo \"lint: run golangci-lint when configured\"",
+    "typecheck": "go vet ./..."
+  }
+}
