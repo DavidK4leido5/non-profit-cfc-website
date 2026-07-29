@@ -48,6 +48,7 @@ CMD ["pnpm", "exec", "turbo", "run", "dev", "--filter=@church/web", "--filter=@c
 # ---
 FROM nginx:1.27-alpine AS runner
 
+COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder-prod /app/apps/web/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
