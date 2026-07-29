@@ -1,4 +1,4 @@
-import { Show, splitProps } from "solid-js";
+import { JSX, Show, splitProps } from "solid-js";
 
 export type ImageGradeScrim = "hero" | "card" | "none";
 
@@ -21,7 +21,7 @@ export type GradedImageProps = {
   imageObjectPosition?: string;
   loading?: "lazy" | "eager";
   decoding?: "async" | "sync" | "auto";
-  referrerPolicy?: HTMLImageElement["referrerPolicy"];
+  referrerPolicy?: JSX.IntrinsicElements["img"]["referrerPolicy"];
 };
 
 export function GradedImage(props: GradedImageProps) {
