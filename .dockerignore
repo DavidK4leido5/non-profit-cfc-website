@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+.pnpm-store
+.turbo
+dist
+bin
+.git
+.gitignore
+.env
+.env.*
+*.md
+PLAN.md
+coverage

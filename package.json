@@ -5,21 +5,18 @@
   "description": "Church website monorepo",
   "scripts": {
     "dev": "turbo run dev",
+    "dev:docker": "docker compose -f infra/docker/docker-compose.yml watch",
+    "docker:build": "docker compose -f infra/docker/docker-compose.yml build",
+    "docker:down": "docker compose -f infra/docker/docker-compose.yml down -v",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck"
   },
+  "packageManager": "pnpm@11.17.0",
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.7.0",
-      "onFail": "download"
-    }
-  },
   "type": "module",
   "devDependencies": {
     "turbo": "^2.10.7"
