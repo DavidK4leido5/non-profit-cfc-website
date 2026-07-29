@@ -3,6 +3,8 @@ node_modules/
 .pnpm-store/
 .turbo/
 dist/
+storybook-static/
+packages/ui/storybook-static/
 bin/
 .env
 .env.local

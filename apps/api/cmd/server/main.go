@@ -1,3 +1,25 @@
+// Package main Church Page API server.
+//
+// @title           Church Page API
+// @version         1.0
+// @description     REST API for the church website: authentication, announcements, and role-gated resources.
+// @termsOfService  https://example.com/terms
+//
+// @contact.name   API Support
+// @contact.email  dev@church.example.org
+//
+// @license.name  MIT
+// @license.url   https://opensource.org/licenses/MIT
+//
+// @host      localhost:8080
+// @BasePath  /
+//
+// @securityDefinitions.apikey CookieAuth
+// @in cookie
+// @name church_session
+//
+// @externalDocs.description  OpenAPI on GitHub
+// @externalDocs.url          https://swagger.io/resources/open-api/
 package main
 
 import (

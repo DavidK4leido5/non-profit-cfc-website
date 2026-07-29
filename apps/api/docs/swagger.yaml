@@ -1,0 +1,216 @@
+basePath: /
+definitions:
+  internal_handler.ErrorBody:
+    properties:
+      code:
+        example: unauthorized
+        type: string
+      message:
+        example: Not authenticated
+        type: string
+    type: object
+  internal_handler.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/internal_handler.ErrorBody'
+    type: object
+  internal_handler.HealthResponse:
+    properties:
+      database:
+        example: configured
+        type: string
+      status:
+        example: ok
+        type: string
+    type: object
+  internal_handler.LoginRequest:
+    properties:
+      email:
+        example: jane@church.org
+        type: string
+      password:
+        example: secure-password
+        type: string
+    type: object
+  internal_handler.RegisterRequest:
+    properties:
+      email:
+        example: jane@church.org
+        type: string
+      name:
+        example: Jane Doe
+        type: string
+      password:
+        example: secure-password
+        type: string
+    type: object
+  internal_handler.UserData:
+    properties:
+      email:
+        example: jane@church.org
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      name:
+        example: Jane Doe
+        type: string
+      roles:
+        example:
+        - member
+        - admin
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.UserResponse:
+    properties:
+      data:
+        $ref: '#/definitions/internal_handler.UserData'
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: dev@church.example.org
+    name: API Support
+  description: 'REST API for the church website: authentication, announcements, and
+    role-gated resources.'
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://example.com/terms
+  title: Church Page API
+  version: "1.0"
+paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Validates credentials and issues an HttpOnly session cookie (Phase
+        1).
+      parameters:
+      - description: Login payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.ErrorResponse'
+        "501":
+          description: Not Implemented
+          schema:
+            $ref: '#/definitions/internal_handler.ErrorResponse'
+      summary: Sign in
+      tags:
+      - auth
+  /api/v1/auth/logout:
+    post:
+      description: Revokes the current session and clears the session cookie (Phase
+        1).
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "501":
+          description: Not Implemented
+          schema:
+            $ref: '#/definitions/internal_handler.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Sign out
+      tags:
+      - auth
+  /api/v1/auth/me:
+    get:
+      description: Returns the authenticated user and role slugs.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Current session
+      tags:
+      - auth
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a user and assigns the default `member` role. Sets an HttpOnly
+        session cookie on success (Phase 1).
+      parameters:
+      - description: Registration payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.ErrorResponse'
+        "501":
+          description: Not Implemented
+          schema:
+            $ref: '#/definitions/internal_handler.ErrorResponse'
+      summary: Register a new account
+      tags:
+      - auth
+  /health:
+    get:
+      description: Returns 200 when the API process is running.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.HealthResponse'
+      summary: Liveness probe
+      tags:
+      - health
+  /ready:
+    get:
+      description: Returns 200 when the API is ready to serve traffic. Database status
+        is informational until Neon is connected.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.HealthResponse'
+      summary: Readiness probe
+      tags:
+      - health
+securityDefinitions:
+  CookieAuth:
+    in: cookie
+    name: church_session
+    type: apiKey
+swagger: "2.0"

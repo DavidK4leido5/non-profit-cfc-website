@@ -1,18 +1,11 @@
 {
+  "extends": "../../packages/typescript-config/base.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
-    "strict": true,
-    "noEmit": true,
-    "isolatedModules": true,
-    "types": ["vite/client"],
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "@church/ui/page-shell": ["../../packages/ui/src/components/PageShell.tsx"]
     }
   },
   "include": ["src"]

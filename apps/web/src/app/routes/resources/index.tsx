@@ -1,4 +1,4 @@
-import { PageShell } from "~/app/components/ui/PageShell";
+import { PageShell } from "@church/ui/page-shell";
 
 export function ResourcesPage() {
   return (

@@ -2,9 +2,10 @@
   "name": "@church/api",
   "private": true,
   "scripts": {
-    "dev": "go run ./cmd/server",
-    "build": "go build -o bin/server ./cmd/server",
-    "test": "go test ./... -race -cover",
+    "dev": "go run -mod=vendor ./cmd/server",
+    "build": "go build -mod=vendor -o bin/server ./cmd/server",
+    "swagger": "go run github.com/swaggo/swag/cmd/swag@v1.16.4 init -g cmd/server/main.go -o docs --parseDependency --parseInternal && go mod vendor",
+    "test": "go test -mod=vendor ./... -race -cover",
     "lint": "echo \"lint: run golangci-lint when configured\"",
     "typecheck": "go vet ./..."
   }

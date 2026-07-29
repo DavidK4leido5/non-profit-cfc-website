@@ -1,0 +1,36 @@
+{
+  "name": "@church/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./page-shell": "./src/components/PageShell.tsx",
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "dev": "storybook dev -p 6006 --host 0.0.0.0 --no-open",
+    "storybook": "storybook dev -p 6006 --host 0.0.0.0 --no-open",
+    "build": "tsc --noEmit",
+    "build-storybook": "storybook build",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"lint: not configured yet\"",
+    "test": "echo \"test: not configured yet\""
+  },
+  "peerDependencies": {
+    "solid-js": "^1.9.5"
+  },
+  "devDependencies": {
+    "@church/typescript-config": "workspace:*",
+    "@storybook/addon-a11y": "^10.5.5",
+    "@storybook/addon-docs": "^10.5.5",
+    "@storybook/addon-links": "^10.5.5",
+    "@tailwindcss/vite": "^4.1.4",
+    "solid-js": "^1.9.5",
+    "storybook": "^10.5.5",
+    "storybook-solidjs-vite": "^10.6.0",
+    "tailwindcss": "^4.1.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vite-plugin-solid": "^2.11.6"
+  }
+}

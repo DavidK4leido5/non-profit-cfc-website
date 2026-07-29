@@ -3,6 +3,8 @@ node_modules
 .pnpm-store
 .turbo
 dist
+storybook-static
+**/storybook-static
 bin
 .git
 .gitignore

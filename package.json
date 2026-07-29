@@ -5,10 +5,13 @@
   "description": "Church website monorepo",
   "scripts": {
     "dev": "turbo run dev",
-    "dev:docker": "docker compose -f infra/docker/docker-compose.yml watch",
-    "docker:build": "docker compose -f infra/docker/docker-compose.yml build",
-    "docker:down": "docker compose -f infra/docker/docker-compose.yml down -v",
+    "dev:docker": "docker compose watch",
+    "docker:build": "docker compose build",
+    "docker:down": "docker compose down -v",
     "build": "turbo run build",
+    "storybook": "turbo run storybook --filter=@church/ui",
+    "build-storybook": "turbo run build-storybook --filter=@church/ui",
+    "swagger": "turbo run swagger --filter=@church/api",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck"

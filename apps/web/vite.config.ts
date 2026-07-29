@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
+const monorepoRoot = path.resolve(rootDir, "../..");
 
 export default defineConfig({
   plugins: [solid(), tailwindcss()],
@@ -12,10 +13,14 @@ export default defineConfig({
     alias: {
       "~": path.resolve(rootDir, "src"),
     },
+    dedupe: ["solid-js"],
   },
   server: {
     host: true,
     port: 5173,
+    fs: {
+      allow: [monorepoRoot],
+    },
     watch: {
       usePolling: process.env.CHOKIDAR_USEPOLLING === "true",
     },

@@ -1,0 +1,38 @@
+import { Meta, Title, Subtitle, Markdown } from "@storybook/addon-docs/blocks";
+
+<Meta title="Introduction/Design System" />
+
+<Title>Church UI — Storybook</Title>
+
+<Subtitle>Shared component library (`@church/ui`)</Subtitle>
+
+<Markdown>
+{`
+This Storybook documents reusable UI in \`packages/ui\`. Apps import components via subpath exports:
+
+\`\`\`tsx
+import { PageShell } from "@church/ui/page-shell";
+\`\`\`
+
+## Running locally
+
+\`\`\`bash
+# Started automatically by docker compose watch (web service)
+# Or manually:
+pnpm exec turbo run dev --filter=@church/ui
+\`\`\`
+
+Open [http://localhost:6006](http://localhost:6006).
+
+## Conventions
+
+| Item | Location |
+|------|----------|
+| Shared UI components | \`packages/ui/src/components/**\` |
+| Stories | Colocated \`*.stories.tsx\` or \`*.mdx\` |
+| App routes & layout | \`apps/web/src/app/**\` |
+| API | \`apps/api\` |
+
+When you add a component, colocate a \`*.stories.tsx\` file and enable \`tags: ['autodocs']\`.
+`}
+</Markdown>

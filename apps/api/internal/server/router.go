@@ -9,6 +9,9 @@ import (
 	"github.com/church-page/api/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger"
+
+	_ "github.com/church-page/api/docs"
 )
 
 func NewRouter(cfg config.Config, logger *slog.Logger) http.Handler {
@@ -25,6 +28,10 @@ func NewRouter(cfg config.Config, logger *slog.Logger) http.Handler {
 
 	r.Get("/health", health.Liveness)
 	r.Get("/ready", health.Readiness)
+
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 
 	r.Route("/api/v1", func(api chi.Router) {
 		api.Get("/auth/me", auth.Me)
