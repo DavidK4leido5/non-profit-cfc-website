@@ -67,15 +67,13 @@ export function MinistryCard(props: MinistryCardProps) {
           src={local.imageSrc}
           alt={local.imageAlt}
           class="h-full w-full object-cover"
-          style={
-            local.imageObjectPosition
-              ? { "object-position": local.imageObjectPosition }
-              : { "object-position": "33% 40%" }
-          }
+          style={{
+            "object-position": local.imageObjectPosition ?? "33% 40%",
+            "clip-path": imageRevealed() ? CLIP_REVEAL : CLIP_REST,
+          }}
           loading="lazy"
           decoding="async"
           animate={{
-            clipPath: imageRevealed() ? CLIP_REVEAL : CLIP_REST,
             scale: imageRevealed() ? 1.1 : 1,
           }}
           transition={revealTransition}

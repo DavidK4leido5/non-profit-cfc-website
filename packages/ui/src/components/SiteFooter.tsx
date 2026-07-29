@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js";
+import { For, JSX, Show } from "solid-js";
 import { EmailIcon, MapPinIcon, PhoneIcon, SocialIcon } from "../icons/footer-icons";
 
 export type SiteFooterLogo = {
@@ -27,7 +27,7 @@ export type SiteFooterProps = {
   class?: string;
 };
 
-function ContactIcon(props: { children: unknown }) {
+function ContactIcon(props: { children: JSX.Element }) {
   return (
     <div class="bg-brand-900/60 text-brand-200 mb-3 inline-flex h-14 w-14 items-center justify-center rounded-full">
       {props.children}

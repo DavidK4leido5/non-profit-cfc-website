@@ -55,7 +55,7 @@ export function GradedImage(props: GradedImageProps) {
         }
         loading={local.loading ?? "lazy"}
         decoding={local.decoding ?? "async"}
-        referrerpolicy={local.referrerPolicy}
+        referrerPolicy={local.referrerPolicy}
       />
       <Show when={tone() === "cool"}>
         <div
