@@ -8,6 +8,5 @@ packages/ui/storybook-static/
 bin/
 .env
 .env.local
-gcp-github-deploy-key.json
 *.log
 .DS_Store

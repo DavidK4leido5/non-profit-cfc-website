@@ -8,6 +8,7 @@ on:
       - "packages/typescript-config/**"
       - "pnpm-lock.yaml"
       - "turbo.json"
+      - "render.yaml"
       - "apps/web/Dockerfile"
       - "apps/web/nginx.conf"
   push:
@@ -18,6 +19,7 @@ on:
       - "packages/typescript-config/**"
       - "pnpm-lock.yaml"
       - "turbo.json"
+      - "render.yaml"
       - "apps/web/Dockerfile"
       - "apps/web/nginx.conf"
 
