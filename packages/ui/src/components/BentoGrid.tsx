@@ -49,6 +49,7 @@ export function BentoCard(props: BentoCardProps) {
         src={local.imageSrc}
         alt={local.imageAlt}
         scrim="card"
+        responsive={false}
         fill
         referrerPolicy="no-referrer"
         class="transition-transform duration-700 ease-out group-hover:scale-105"
@@ -61,17 +62,17 @@ export function BentoCard(props: BentoCardProps) {
               <ActivityIcon id={local.icon} class="text-white h-8 w-8 sm:h-9 sm:w-9" />
             </div>
             <Show when={local.dateLabel}>
-              <span class="rounded-full bg-brand-500/90 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-white backdrop-blur-sm sm:text-xs">
+              <span class="font-ui rounded-full bg-brand-500/90 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-white backdrop-blur-sm sm:text-xs">
                 {local.dateLabel}
               </span>
             </Show>
           </div>
 
           <div class="space-y-2">
-            <h3 class="text-on-hero text-xl font-semibold leading-snug tracking-tight drop-shadow-sm sm:text-2xl">
+            <h3 class="font-display text-on-hero text-xl font-light leading-snug tracking-tight drop-shadow-sm sm:text-2xl">
               {local.name}
             </h3>
-            <p class="text-on-hero-muted line-clamp-3 text-sm leading-relaxed sm:text-[0.9375rem]">
+            <p class="font-body text-on-hero-muted line-clamp-3 text-sm leading-relaxed sm:text-[0.9375rem]">
               {local.description}
             </p>
           </div>

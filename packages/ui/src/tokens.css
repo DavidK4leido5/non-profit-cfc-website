@@ -74,6 +74,65 @@
   /* GradedImage split-tone — tune strength without touching skin midtones */
   --image-grade-shadow-opacity: 0.16;
   --image-grade-highlight-opacity: 0.22;
+
+  /*
+   * Typography — mapped from Normal is Boring (Editorial New / Juana / Izmir).
+   * See docs/TYPOGRAPHY.md. Google Fonts stand-ins (commercial fonts not licensed).
+   */
+  --font-display: "Cormorant Garamond", "Times New Roman", Georgia, serif;
+  --font-body: "Lora", "Palatino Linotype", Georgia, serif;
+  --font-ui: "DM Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+html {
+  font-kerning: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-kerning: none;
+  letter-spacing: -0.03em;
+}
+
+.font-body {
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+
+.font-ui,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-ui);
+}
+
+/* Back-compat aliases used on the board page */
+.board-font-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-kerning: none;
+}
+
+.board-font-body {
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+
+.board-font-sans {
+  font-family: var(--font-ui);
+  font-weight: 500;
 }
 
 @theme inline {
@@ -254,4 +313,609 @@
 
 .text-on-hero-subtle {
   color: rgb(248 250 252 / 0.65);
+}
+
+/** Board page — palettes, layout rhythm (type tokens live on :root) */
+.board-page {
+  font-family: var(--font-body);
+}
+
+/** Space between ministry boards so each group reads as its own bulletin */
+.board-ministry-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  padding-block: 2.5rem 3.5rem;
+}
+
+@media (min-width: 768px) {
+  .board-ministry-stack {
+    gap: 3.5rem;
+    padding-block: 3rem 4.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .board-ministry-stack {
+    gap: 4.5rem;
+    padding-block: 3.5rem 5rem;
+  }
+}
+
+.bulletin-ministry {
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+html:has(.board-page) {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.board-page) {
+    scroll-behavior: auto;
+  }
+}
+
+.board-hero {
+  height: 55vh;
+  min-height: 20rem;
+}
+
+@media (min-width: 1024px) {
+  .board-hero {
+    height: 66.666vh;
+    min-height: 28rem;
+  }
+}
+
+.board-hero-scrim {
+  background: linear-gradient(
+    180deg,
+    rgb(0 0 0 / 0.28) 0%,
+    rgb(0 0 0 / 0.18) 42%,
+    rgb(0 0 0 / 0.72) 100%
+  );
+}
+
+.board-hero-image-accent {
+  background: transparent;
+}
+
+.bulletin-hero-title-compact {
+  font-size: clamp(2.25rem, 6vw, 4.25rem);
+  font-weight: 300;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.bulletin-hero-link-compact {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.625rem 1.125rem;
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.bulletin-hero-link-tone-0 {
+  background: var(--color-brand-600);
+  color: var(--color-ink-inverse);
+  box-shadow: 0 4px 14px rgb(52 84 180 / 0.35);
+}
+
+.bulletin-hero-link-tone-0:hover {
+  background: var(--color-brand-700);
+}
+
+.bulletin-hero-link-tone-1 {
+  background: var(--color-accent-500);
+  color: var(--color-brand-950);
+  box-shadow: 0 4px 14px rgb(245 158 11 / 0.35);
+}
+
+.bulletin-hero-link-tone-1:hover {
+  background: #fbbf24;
+}
+
+.bulletin-hero-link-tone-2 {
+  background: #0d9488;
+  color: var(--color-ink-inverse);
+  box-shadow: 0 4px 14px rgb(13 148 136 / 0.35);
+}
+
+.bulletin-hero-link-tone-2:hover {
+  background: #0f766e;
+}
+
+.bulletin-ministry-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(248 250 252 / 0.82);
+}
+
+.bulletin-ministry-eyebrow-on-color {
+  color: rgb(255 255 255 / 0.78);
+}
+
+.bulletin-ministry-title {
+  margin-top: 0.4rem;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: -0.045em;
+  color: var(--color-ink-inverse);
+  text-wrap: balance;
+}
+
+.bulletin-ministry-title-on-color {
+  color: inherit;
+}
+
+.bulletin-ministry-tagline {
+  margin-top: 0.65rem;
+  max-width: 38rem;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.45;
+  color: rgb(248 250 252 / 0.9);
+}
+
+.bulletin-ministry-tagline-on-color {
+  color: inherit;
+  opacity: 0.9;
+  max-width: 28rem;
+}
+
+/** First ministry — taller than split sections, not full viewport */
+.bulletin-ministry-featured-header {
+  position: relative;
+  min-height: 22rem;
+  height: clamp(22rem, 42vh, 30rem);
+}
+
+@media (min-width: 1024px) {
+  .bulletin-ministry-featured-header {
+    min-height: 24rem;
+    height: clamp(24rem, 45vh, 32rem);
+  }
+}
+
+/** Later ministries — half image / half color+text */
+.bulletin-ministry-split-header {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .bulletin-ministry-split-header {
+    grid-template-columns: 1fr 1fr;
+    min-height: 22rem;
+  }
+
+  .bulletin-ministry-split-header-reverse .bulletin-ministry-split-media {
+    order: 2;
+  }
+
+  .bulletin-ministry-split-header-reverse .bulletin-ministry-split-copy {
+    order: 1;
+  }
+}
+
+.bulletin-ministry-split-copy {
+  color: var(--color-ink-inverse);
+  min-height: 16rem;
+}
+
+.bulletin-ministry-split-copy .bulletin-ministry-eyebrow {
+  color: inherit;
+  opacity: 0.78;
+}
+
+.bulletin-ministry-split-copy .bulletin-ministry-title {
+  color: inherit;
+}
+
+.bulletin-ministry-split-copy.bulletin-poster-palette-gold {
+  color: var(--color-brand-950);
+}
+
+.bulletin-ministry-banner-left {
+  text-align: left;
+}
+
+.bulletin-ministry-banner-center {
+  text-align: center;
+}
+
+.bulletin-ministry-banner-center .bulletin-ministry-tagline {
+  margin-inline: auto;
+}
+
+.bulletin-ministry-banner-right {
+  text-align: right;
+}
+
+.bulletin-ministry-banner-right .bulletin-ministry-tagline {
+  margin-left: auto;
+}
+
+.bulletin-ministry-banner-left,
+.bulletin-ministry-banner-center,
+.bulletin-ministry-banner-right {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgb(0 0 0 / 0.5) 100%
+  );
+}
+
+/** Neutral photo overlays — readability only, no blue cast */
+.bulletin-ministry-scrim-brand,
+.bulletin-ministry-scrim-sunset,
+.bulletin-ministry-scrim-mint,
+.bulletin-ministry-scrim-gold,
+.bulletin-ministry-scrim-violet {
+  background: linear-gradient(
+    180deg,
+    rgb(0 0 0 / 0.12) 0%,
+    rgb(0 0 0 / 0.55) 100%
+  );
+}
+
+.bulletin-poster-standard {
+  min-height: 16rem;
+}
+
+.bulletin-poster-featured {
+  min-height: 20rem;
+}
+
+.bulletin-ministry-featured .bulletin-poster-featured {
+  min-height: 22rem;
+}
+
+@media (min-width: 640px) {
+  .bulletin-poster-standard {
+    min-height: 16rem;
+  }
+
+  .bulletin-poster-featured {
+    min-height: 20rem;
+  }
+
+  .bulletin-ministry-featured .bulletin-poster-featured {
+    min-height: 26rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bulletin-poster-standard {
+    min-height: 18rem;
+  }
+
+  .bulletin-poster-featured {
+    min-height: 22rem;
+  }
+
+  .bulletin-ministry-featured .bulletin-poster-featured {
+    min-height: 28rem;
+  }
+}
+
+/** Split poster — image | color+text */
+.bulletin-poster-split {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .bulletin-poster-split {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bulletin-poster-split-reverse .bulletin-poster-split-media {
+    order: 2;
+  }
+
+  .bulletin-poster-split-reverse .bulletin-poster-split-copy {
+    order: 1;
+  }
+}
+
+.bulletin-poster-split-copy {
+  min-height: 16rem;
+}
+
+.bulletin-poster-split-copy .bulletin-poster-date {
+  color: inherit;
+  opacity: 0.88;
+}
+
+.bulletin-poster-split-copy .bulletin-poster-body {
+  color: inherit;
+  opacity: 0.9;
+}
+
+.bulletin-poster-split-copy.bulletin-poster-palette-gold .bulletin-poster-body {
+  color: rgb(21 34 74 / 0.82);
+  opacity: 1;
+}
+
+.bulletin-poster-image {
+  color: var(--color-ink-inverse);
+}
+
+.bulletin-poster-palette-brand {
+  background: linear-gradient(
+    125deg,
+    var(--color-brand-800) 0%,
+    var(--color-brand-600) 55%,
+    var(--color-brand-400) 100%
+  );
+  color: var(--color-ink-inverse);
+}
+
+.bulletin-poster-palette-sunset {
+  background: linear-gradient(
+    125deg,
+    #c2410c 0%,
+    #f97316 38%,
+    var(--color-brand-700) 100%
+  );
+  color: var(--color-ink-inverse);
+}
+
+.bulletin-poster-palette-gold {
+  background: linear-gradient(
+    125deg,
+    var(--color-accent-500) 0%,
+    #fb923c 45%,
+    var(--color-brand-800) 100%
+  );
+  color: var(--color-brand-950);
+}
+
+.bulletin-poster-palette-gold .bulletin-poster-body {
+  color: rgb(21 34 74 / 0.82);
+}
+
+.bulletin-poster-palette-mint {
+  background: linear-gradient(
+    125deg,
+    #0f766e 0%,
+    #14b8a6 42%,
+    var(--color-brand-700) 100%
+  );
+  color: var(--color-ink-inverse);
+}
+
+.bulletin-poster-palette-violet {
+  background: linear-gradient(
+    125deg,
+    #6d28d9 0%,
+    #8b5cf6 40%,
+    var(--color-brand-600) 100%
+  );
+  color: var(--color-ink-inverse);
+}
+
+.bulletin-poster-scrim-brand,
+.bulletin-poster-scrim-sunset,
+.bulletin-poster-scrim-gold,
+.bulletin-poster-scrim-mint,
+.bulletin-poster-scrim-violet {
+  background: linear-gradient(
+    180deg,
+    rgb(0 0 0 / 0.08) 0%,
+    rgb(0 0 0 / 0.35) 45%,
+    rgb(0 0 0 / 0.78) 100%
+  );
+}
+
+.bulletin-poster-align-left .bulletin-poster-meta,
+.bulletin-poster-align-left .bulletin-poster-title,
+.bulletin-poster-align-left .bulletin-poster-body {
+  text-align: left;
+  margin-right: auto;
+}
+
+.bulletin-poster-align-center .bulletin-poster-meta,
+.bulletin-poster-align-center .bulletin-poster-title,
+.bulletin-poster-align-center .bulletin-poster-body {
+  text-align: center;
+  margin-inline: auto;
+}
+
+.bulletin-poster-align-center .bulletin-poster-meta {
+  justify-content: center;
+}
+
+.bulletin-poster-align-right .bulletin-poster-meta,
+.bulletin-poster-align-right .bulletin-poster-title,
+.bulletin-poster-align-right .bulletin-poster-body {
+  text-align: right;
+  margin-left: auto;
+}
+
+.bulletin-poster-align-right .bulletin-poster-meta {
+  flex-direction: row-reverse;
+}
+
+.bulletin-poster-meta {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.bulletin-poster-tag {
+  display: inline-flex;
+  border-radius: 0.375rem;
+  background: var(--color-brand-600);
+  color: var(--color-ink-inverse);
+  padding: 0.35rem 0.65rem;
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bulletin-poster-image .bulletin-poster-tag {
+  background: rgb(255 255 255 / 0.2);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgb(255 255 255 / 0.28);
+}
+
+.bulletin-poster-tag-accent {
+  background: var(--color-accent-400);
+  color: var(--color-brand-950);
+}
+
+.bulletin-poster-date {
+  margin-left: auto;
+  font-family: var(--font-ui);
+  font-size: clamp(1rem, 2vw, 1.375rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: rgb(248 250 252 / 0.88);
+}
+
+.bulletin-poster-align-center .bulletin-poster-date {
+  margin-left: 0;
+}
+
+.bulletin-poster-align-right .bulletin-poster-date {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.bulletin-poster-title {
+  margin-top: 1rem;
+  max-width: 48rem;
+  font-size: clamp(1.75rem, 4.5vw, 3rem);
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.bulletin-poster-body {
+  margin-top: 0.75rem;
+  max-width: 36rem;
+  font-size: clamp(0.9375rem, 1.8vw, 1.125rem);
+  line-height: 1.55;
+  color: rgb(248 250 252 / 0.9);
+}
+
+.bulletin-poster-brand .bulletin-poster-body {
+  color: rgb(248 250 252 / 0.88);
+}
+
+/** Landing invitation marquee — continuous left → right */
+.invite-marquee {
+  --invite-marquee-duration: 42s;
+  background: var(--color-brand-950);
+  color: var(--color-ink-inverse);
+  border-block: 1px solid rgb(255 255 255 / 0.08);
+  overflow: hidden;
+  padding-block: 1.1rem;
+}
+
+@media (min-width: 640px) {
+  .invite-marquee {
+    padding-block: 1.35rem;
+  }
+}
+
+.invite-marquee-viewport {
+  overflow: hidden;
+  width: 100%;
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #000 4%,
+    #000 96%,
+    transparent 100%
+  );
+}
+
+.invite-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: invite-marquee-ltr var(--invite-marquee-duration) linear infinite;
+}
+
+.invite-marquee-group {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.invite-marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding-inline: 1.25rem;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .invite-marquee-item {
+    gap: 1.75rem;
+    padding-inline: 1.75rem;
+  }
+}
+
+.invite-marquee-phrase {
+  font-size: clamp(1.35rem, 3.2vw, 2.35rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.invite-marquee-dot {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--color-accent-400);
+  flex-shrink: 0;
+}
+
+@keyframes invite-marquee-ltr {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invite-marquee-track {
+    animation: none;
+    transform: none;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .invite-marquee-group[aria-hidden="true"] {
+    display: none;
+  }
+
+  .invite-marquee-item {
+    white-space: normal;
+    text-align: center;
+  }
 }

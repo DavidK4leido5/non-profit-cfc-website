@@ -1,25 +1,4 @@
 // Package main Church Page API server.
-//
-// @title           Church Page API
-// @version         1.0
-// @description     REST API for the church website: authentication, announcements, and role-gated resources.
-// @termsOfService  https://example.com/terms
-//
-// @contact.name   API Support
-// @contact.email  dev@church.example.org
-//
-// @license.name  MIT
-// @license.url   https://opensource.org/licenses/MIT
-//
-// @host      localhost:8080
-// @BasePath  /
-//
-// @securityDefinitions.apikey CookieAuth
-// @in cookie
-// @name church_session
-//
-// @externalDocs.description  OpenAPI on GitHub
-// @externalDocs.url          https://swagger.io/resources/open-api/
 package main
 
 import (
@@ -29,11 +8,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
+	"github.com/church-page/api/internal/cloudinary"
 	"github.com/church-page/api/internal/config"
+	"github.com/church-page/api/internal/db"
 	"github.com/church-page/api/internal/server"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -47,13 +30,59 @@ func main() {
 		Level: cfg.LogLevel,
 	}))
 
-	handler := server.NewRouter(cfg, logger)
+	ctx := context.Background()
+	var pool *pgxpool.Pool
+	if cfg.DatabaseURL != "" {
+		pool, err = db.Connect(ctx, cfg.DatabaseURL)
+		if err != nil {
+			logger.Error("database connect failed", "error", err)
+			os.Exit(1)
+		}
+
+		migrationsDir := cfg.MigrationsDir
+		if !filepath.IsAbs(migrationsDir) {
+			if abs, absErr := filepath.Abs(migrationsDir); absErr == nil {
+				migrationsDir = abs
+			}
+		}
+		if err := db.Migrate(ctx, pool, migrationsDir); err != nil {
+			logger.Error("migrate failed", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("database ready", "migrations", migrationsDir)
+	} else {
+		logger.Warn("DATABASE_URL not set — content and asset APIs disabled")
+	}
+
+	var cld *cloudinary.Client
+	if cfg.CloudinaryConfigured() {
+		cld, err = cloudinary.New(cloudinary.Config{
+			CloudName: cfg.CloudinaryCloudName,
+			APIKey:    cfg.CloudinaryAPIKey,
+			APISecret: cfg.CloudinaryAPISecret,
+			Folder:    cfg.CloudinaryFolder,
+		})
+		if err != nil {
+			logger.Error("cloudinary init failed", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("cloudinary configured", "cloud", cfg.CloudinaryCloudName, "folder", cfg.CloudinaryFolder)
+	} else {
+		logger.Warn("cloudinary not fully configured — asset upload disabled")
+	}
+
+	httpHandler := server.NewRouter(server.Deps{
+		Config:     cfg,
+		Logger:     logger,
+		Pool:       pool,
+		Cloudinary: cld,
+	})
 
 	httpServer := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      handler,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		Handler:      httpHandler,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
@@ -69,12 +98,15 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	logger.Info("shutting down")
-	if err := httpServer.Shutdown(ctx); err != nil {
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		logger.Error("shutdown failed", "error", err)
 		os.Exit(1)
+	}
+	if pool != nil {
+		pool.Close()
 	}
 }

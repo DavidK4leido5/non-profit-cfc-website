@@ -22,6 +22,7 @@ export type SitePreviewStat = {
 };
 
 export type SiteMinistry = {
+  slug: string;
   imageSrc: string;
   imageAlt: string;
   title: string;
@@ -82,6 +83,41 @@ export type SiteActivity = {
   className: string;
 };
 
+export type SiteBulletinPost = {
+  id: string;
+  title: string;
+  body: string;
+  dateLabel: string;
+  tag?: string;
+  pinned?: boolean;
+  imageSrc?: string;
+  imageAlt?: string;
+  imageObjectPosition?: string;
+  variant?: "image" | "brand";
+  palette?: "brand" | "sunset" | "gold" | "mint" | "violet";
+  align?: "left" | "center" | "right";
+};
+
+export type SiteBoardMinistry = {
+  slug: string;
+  title: string;
+  tagline: string;
+  imageSrc: string;
+  imageAlt: string;
+  imageObjectPosition?: string;
+  posts: SiteBulletinPost[];
+};
+
+export type SiteBoardContent = {
+  hero: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    background: { src: string; alt: string };
+  };
+  ministries: SiteBoardMinistry[];
+};
+
 export const siteContent = {
   brand: {
     name: "Christian Fellowship Church",
@@ -134,6 +170,15 @@ export const siteContent = {
       { value: "120+", label: "Volunteers" },
       { value: "Open", label: "All are welcome" },
     ] satisfies SitePreviewStat[],
+  },
+
+  invitationMarquee: {
+    label: "Sunday invitation",
+    phrases: [
+      "See you on Sunday",
+      "You're invited",
+      "We can't wait to meet you",
+    ],
   },
 
   g12Vision: {
@@ -256,36 +301,39 @@ export const siteContent = {
       "Explore our ministries and discover meaningful ways to serve, grow in faith, and build relationships.",
     items: [
       {
+        slug: "youth",
         imageSrc:
           "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1200&q=80",
         imageAlt: "Children smiling together at a community event",
         title: "Youth & Children",
         description:
           "Safe, fun, and faith-filled programs that help kids and students know Jesus and build lasting friendships.",
-        primaryCta: { label: "Learn more", href: "#youth" },
-        secondaryCta: { label: "Volunteer with us", href: "#volunteer" },
+        primaryCta: { label: "View bulletin", href: "/board#youth" },
+        secondaryCta: { label: "Volunteer with us", href: "/board#youth" },
         imageObjectPosition: "33% 35%",
       },
       {
+        slug: "worship",
         imageSrc:
           "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1200&q=80",
         imageAlt: "Congregation worshipping together in a bright sanctuary",
         title: "Worship & Music",
         description:
           "Join us each Sunday for heartfelt worship and biblical teaching that draws us closer to God and one another.",
-        primaryCta: { label: "Learn more", href: "#worship" },
-        secondaryCta: { label: "View service times", href: "#times" },
+        primaryCta: { label: "View bulletin", href: "/board#worship" },
+        secondaryCta: { label: "View service times", href: "/board#worship" },
         imageObjectPosition: "50% 30%",
       },
       {
+        slug: "outreach",
         imageSrc:
           "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=1200&q=80",
         imageAlt: "Volunteers serving food in the community",
         title: "Community Outreach",
         description:
           "Serving our neighbors through food drives, care visits, and local partnerships that meet real needs with love.",
-        primaryCta: { label: "Learn more", href: "#outreach" },
-        secondaryCta: { label: "See upcoming events", href: "#events" },
+        primaryCta: { label: "View bulletin", href: "/board#outreach" },
+        secondaryCta: { label: "See upcoming events", href: "/board#outreach" },
         imageObjectPosition: "66% 40%",
       },
     ] satisfies SiteMinistry[],
@@ -302,6 +350,165 @@ export const siteContent = {
       },
     } satisfies SiteMinistriesMore,
   },
+
+  board: {
+    hero: {
+      eyebrow: "What's new at CFC",
+      title: "See what's on the board.",
+      subtitle:
+        "Big updates from each ministry — camps, serve days, rehearsals, and volunteer calls. Tap a board below or scroll to yours.",
+      background: {
+        src: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1920&q=80",
+        alt: "Smiling team members gathered together",
+      },
+    },
+    ministries: [
+      {
+        slug: "youth",
+        title: "Youth & Children",
+        tagline: "Programs, camps, and family updates for kids and students.",
+        imageSrc:
+          "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1920&q=80",
+        imageAlt: "Children smiling together at a community event",
+        imageObjectPosition: "50% 40%",
+        posts: [
+          {
+            id: "youth-camp",
+            title: "Summer camp registration is open!",
+            body: "Register your student by April 15 for early-bird pricing. Scholarships available — contact the youth office.",
+            dateLabel: "Mar 12",
+            tag: "Event",
+            pinned: true,
+            imageSrc:
+              "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1920&q=80",
+            imageAlt: "Youth group laughing together outdoors",
+            imageObjectPosition: "50% 40%",
+            palette: "mint",
+            align: "left",
+          },
+          {
+            id: "youth-sunday",
+            title: "Youth Sunday this week",
+            body: "Middle school 9:00 AM · High school 11:00 AM in the East Hall. Parent pickup at the main lobby.",
+            dateLabel: "Mar 8",
+            tag: "Schedule",
+            variant: "brand",
+            palette: "gold",
+            align: "center",
+          },
+          {
+            id: "youth-vbs",
+            title: "VBS volunteers needed",
+            body: "Friendly faces for crafts, games, and snack time. One-hour shifts or full mornings — all welcome.",
+            dateLabel: "Mar 5",
+            tag: "Volunteer",
+            imageSrc:
+              "https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=1920&q=80",
+            imageAlt: "Teacher smiling with children in a classroom",
+            imageObjectPosition: "45% 40%",
+            palette: "violet",
+            align: "right",
+          },
+        ],
+      },
+      {
+        slug: "worship",
+        title: "Worship & Music",
+        tagline: "Rehearsals, set lists, and serving opportunities on the worship team.",
+        imageSrc:
+          "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1920&q=80",
+        imageAlt: "Congregation smiling and worshipping together",
+        imageObjectPosition: "50% 30%",
+        posts: [
+          {
+            id: "worship-team",
+            title: "Worship team auditions — sign up!",
+            body: "Singers and musicians — bring one song that showcases your gift. Fifteen-minute slots after Sunday service.",
+            dateLabel: "Mar 10",
+            tag: "Opportunity",
+            pinned: true,
+            imageSrc:
+              "https://images.unsplash.com/photo-1556157382-97eda2d62296?w=1920&q=80",
+            imageAlt: "People smiling and raising hands during worship",
+            imageObjectPosition: "55% 40%",
+            palette: "sunset",
+            align: "center",
+          },
+          {
+            id: "worship-easter",
+            title: "Easter rehearsal — Saturday 4 PM",
+            body: "Full-team rehearsal. Arrive 15 minutes early for sound check. Music packets at the welcome desk.",
+            dateLabel: "Mar 7",
+            tag: "Rehearsal",
+            variant: "brand",
+            palette: "violet",
+            align: "right",
+          },
+          {
+            id: "worship-tech",
+            title: "Tech team training night",
+            body: "Slides, lights, and live stream basics — no experience required. Pizza at 6:30 PM in the media booth.",
+            dateLabel: "Mar 3",
+            tag: "Training",
+            imageSrc:
+              "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80",
+            imageAlt: "Smiling volunteers collaborating together",
+            imageObjectPosition: "50% 45%",
+            palette: "brand",
+            align: "left",
+          },
+        ],
+      },
+      {
+        slug: "outreach",
+        title: "Community Outreach",
+        tagline: "Local serve days, care visits, and ways to love our neighbors.",
+        imageSrc:
+          "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=1920&q=80",
+        imageAlt: "Smiling graduates celebrating together outdoors",
+        imageObjectPosition: "50% 35%",
+        posts: [
+          {
+            id: "outreach-food",
+            title: "Food drive — this Saturday",
+            body: "Drop off non-perishables 8 AM–12 PM at the main entrance. Most needed: rice, canned goods, and hygiene kits.",
+            dateLabel: "Mar 14",
+            tag: "Serve day",
+            pinned: true,
+            imageSrc:
+              "https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=1920&q=80",
+            imageAlt: "Church family smiling together in fellowship",
+            imageObjectPosition: "50% 40%",
+            palette: "sunset",
+            align: "right",
+          },
+          {
+            id: "outreach-visits",
+            title: "Care visit team sign-up",
+            body: "Pair with a homebound member for a monthly visit or phone call. Training on the first Tuesday of each month.",
+            dateLabel: "Mar 9",
+            tag: "Volunteer",
+            variant: "brand",
+            palette: "mint",
+            align: "left",
+          },
+          {
+            id: "outreach-picnic",
+            title: "Community picnic — May 18",
+            body: "Help us welcome neighbors! Setup crews, grill masters, and greeters needed. Reply by March 20.",
+            dateLabel: "Mar 6",
+            tag: "Event",
+            imageSrc:
+              "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&q=80",
+            imageAlt: "Friends smiling and laughing together outdoors",
+            imageObjectPosition: "50% 40%",
+            palette: "gold",
+            align: "center",
+          },
+        ],
+      },
+    ],
+  } satisfies SiteBoardContent,
 
   visitInvite: {
     title: "We'd love to see you this weekend!",

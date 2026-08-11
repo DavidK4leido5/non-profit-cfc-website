@@ -22,11 +22,11 @@ export function UpcomingActivitiesSection(props: UpcomingActivitiesSectionProps)
     >
       <div class="mx-auto max-w-page px-4 py-14 sm:py-16 lg:px-10 lg:py-20">
         <motion.div class="mx-auto mb-10 max-w-2xl text-center sm:mb-12" variants={fadeUpItem} transition={easeOut}>
-          <h2 class="text-ink-heading text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
+          <h2 class="font-display text-ink-heading text-2xl font-light tracking-tight sm:text-3xl lg:text-4xl">
             {props.title}
           </h2>
           <Show when={props.subtitle}>
-            <p class="text-ink-muted mt-3 text-base leading-relaxed sm:mt-4 sm:text-lg">
+            <p class="font-body text-ink-muted mt-3 text-base leading-relaxed sm:mt-4 sm:text-lg">
               {props.subtitle}
             </p>
           </Show>

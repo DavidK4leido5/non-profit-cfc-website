@@ -1,12 +1,14 @@
 import { Hero } from "@church/ui/hero";
 import { G12VisionSection } from "@church/ui/g12-vision-section";
+import { InvitationMarquee } from "@church/ui/invitation-marquee";
 import { MinistriesSection } from "@church/ui/ministries-section";
 import { UpcomingActivitiesSection } from "@church/ui/upcoming-activities-section";
 import { VisitInviteSection } from "@church/ui/visit-invite-section";
 import { siteContent } from "~/content/site.content";
 
 export function LandingPage() {
-  const { hero, g12Vision, activities, ministries, visitInvite } = siteContent;
+  const { hero, invitationMarquee, g12Vision, activities, ministries, visitInvite } =
+    siteContent;
 
   const activityItems = () =>
     activities.items.map((item) => ({
@@ -32,6 +34,10 @@ export function LandingPage() {
         background={hero.background}
         badge={hero.badge}
         stats={[...hero.stats]}
+      />
+      <InvitationMarquee
+        phrases={invitationMarquee.phrases}
+        label={invitationMarquee.label}
       />
       <G12VisionSection
         headerTitle={g12Vision.headerTitle}

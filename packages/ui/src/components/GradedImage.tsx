@@ -1,4 +1,9 @@
 import { JSX, Show, splitProps } from "solid-js";
+import {
+  getOptimizedImageAttributes,
+  type OptimizedImageAttributes,
+  type ResponsiveImageVariant,
+} from "../images/responsive-image";
 
 export type ImageGradeScrim = "hero" | "card" | "none";
 
@@ -22,6 +27,9 @@ export type GradedImageProps = {
   loading?: "lazy" | "eager";
   decoding?: "async" | "sync" | "auto";
   referrerPolicy?: JSX.IntrinsicElements["img"]["referrerPolicy"];
+  /** Responsive srcset for optimizable remote URLs (Unsplash). */
+  responsive?: ResponsiveImageVariant | false;
+  sizes?: string;
 };
 
 export function GradedImage(props: GradedImageProps) {
@@ -36,16 +44,31 @@ export function GradedImage(props: GradedImageProps) {
     "loading",
     "decoding",
     "referrerPolicy",
+    "responsive",
+    "sizes",
   ]);
 
   const scrim = () => local.scrim ?? "none";
   const tone = () => local.tone ?? "cool";
   const coolVariant = () => (scrim() === "hero" ? "hero" : "card");
+  const optimized = (): OptimizedImageAttributes => {
+    if (local.responsive === false) {
+      return { src: local.src };
+    }
+
+    return getOptimizedImageAttributes({
+      src: local.src,
+      variant: local.responsive ?? (scrim() === "hero" ? "hero" : "card"),
+      sizes: local.sizes,
+    });
+  };
 
   return (
     <div class={`image-grade ${local.fill ? "absolute inset-0" : "relative h-full w-full"}`}>
       <img
-        src={local.src}
+        src={optimized().src}
+        srcset={optimized().srcset}
+        sizes={optimized().sizes}
         alt={local.alt}
         class={`h-full w-full object-cover ${local.class ?? ""}`}
         style={

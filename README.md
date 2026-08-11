@@ -15,12 +15,28 @@ church-page/
 
 ## Prerequisites
 
-- [Docker](https://www.docker.com/) (recommended — only requirement for dev)
-- [pnpm](https://pnpm.io/) 11+ and [Go](https://go.dev/) 1.22+ (optional, for host-only workflows)
+- [Docker](https://www.docker.com/) — **required for the Go API** (no local Go install)
+- [pnpm](https://pnpm.io/) 11+ (optional — host web only)
 
-## Docker dev (recommended)
+## Docker API only
 
-Separate `web` and `api` services, each built from its own Dockerfile.
+```bash
+# loads root .env (DATABASE_URL, Cloudinary, ADMIN_API_TOKEN)
+pnpm dev:api
+# same as: docker compose up api --build --remove-orphans
+```
+
+Go is compiled **inside the image** (no local Go). Rebuild the image when you change API code.
+
+API: http://localhost:8080/health — then run the web app on the host with `pnpm --filter @church/web dev` (proxies `/api/v1` → localhost:8080).
+
+Auto-rebuild on Go file changes:
+
+```bash
+pnpm dev:api:watch
+```
+
+## Full Docker stack (web + api)
 
 ```bash
 docker compose build
@@ -57,13 +73,13 @@ docker compose exec web pnpm build-storybook
 docker compose exec api sh -c "go run github.com/swaggo/swag/cmd/swag@v1.16.4 init -g cmd/server/main.go -o docs --parseDependency --parseInternal && go mod vendor"
 ```
 
-## Local dev (host)
+## Local web (host) + Docker API
 
-Requires Go 1.22+ and pnpm 11+ on the host.
+No local Go. Run the API in Docker, web on the host:
 
 ```bash
-pnpm install
-pnpm dev
+pnpm dev:api            # terminal 1 — Go API in Docker
+pnpm --filter @church/web dev   # terminal 2 — Vite on :5173
 ```
 
 ## UI documentation (Storybook)

@@ -15,10 +15,13 @@
     "./graded-image": "./src/components/GradedImage.tsx",
     "./g12-vision-section": "./src/components/G12VisionSection.tsx",
     "./visit-invite-section": "./src/components/VisitInviteSection.tsx",
+    "./invitation-marquee": "./src/components/InvitationMarquee.tsx",
     "./site-footer": "./src/components/SiteFooter.tsx",
     "./upcoming-activities-section": "./src/components/UpcomingActivitiesSection.tsx",
     "./page-shell": "./src/components/PageShell.tsx",
+    "./board-page": "./src/components/BoardPageView.tsx",
     "./motion": "./src/motion/index.ts",
+    "./responsive-image": "./src/images/responsive-image.ts",
     "./styles.css": "./src/styles.css",
     "./tokens.css": "./src/tokens.css"
   },

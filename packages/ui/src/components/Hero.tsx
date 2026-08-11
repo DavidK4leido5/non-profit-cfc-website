@@ -44,6 +44,8 @@ export function Hero(props: HeroProps) {
           src={props.background.src}
           alt={props.background.alt}
           scrim="hero"
+          responsive={false}
+          fill
           class="scale-105 object-center"
           loading="eager"
         />
@@ -59,7 +61,7 @@ export function Hero(props: HeroProps) {
           >
             <Show when={props.badge}>
               <motion.span
-                class="bg-brand-500/90 text-on-hero mb-4 inline-block rounded-full px-3 py-1 text-xs font-medium backdrop-blur-sm sm:text-sm"
+                class="bg-brand-500/90 text-on-hero font-ui mb-4 inline-block rounded-full px-3 py-1 text-xs font-medium backdrop-blur-sm sm:text-sm"
                 variants={fadeUpItem}
                 transition={easeOut}
               >
@@ -68,21 +70,21 @@ export function Hero(props: HeroProps) {
             </Show>
 
             <motion.p
-              class="text-brand-200 text-xs font-medium uppercase tracking-wider sm:text-sm"
+              class="font-ui text-brand-200 text-xs font-medium uppercase tracking-wider sm:text-sm"
               variants={fadeUpItem}
               transition={easeOut}
             >
               {props.eyebrow}
             </motion.p>
             <motion.h1
-              class="text-on-hero mt-3 text-4xl font-semibold tracking-tight sm:mt-4 sm:text-5xl md:text-6xl lg:text-7xl lg:leading-[1.05]"
+              class="font-display text-on-hero mt-3 text-4xl font-light tracking-tight sm:mt-4 sm:text-5xl md:text-6xl lg:text-7xl lg:leading-[0.95]"
               variants={fadeUpItem}
               transition={easeOut}
             >
               {props.headline}
             </motion.h1>
             <motion.p
-              class="text-on-hero-muted mt-4 max-w-xl text-base leading-relaxed sm:mt-6 sm:text-lg lg:max-w-none lg:text-xl"
+              class="font-body text-on-hero-muted mt-4 max-w-xl text-base leading-relaxed sm:mt-6 sm:text-lg lg:max-w-none lg:text-xl"
               variants={fadeUpItem}
               transition={easeOut}
             >

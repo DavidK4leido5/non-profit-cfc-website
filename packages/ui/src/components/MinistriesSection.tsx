@@ -53,11 +53,11 @@ export function MinistriesSection(props: MinistriesSectionProps) {
     >
       <div class="mx-auto max-w-page px-4 py-14 sm:py-16 lg:px-10 lg:py-20">
         <motion.div class="mx-auto mb-10 max-w-2xl text-center sm:mb-12" variants={fadeUpItem} transition={easeOut}>
-          <h2 class="text-ink-heading text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
+          <h2 class="font-display text-ink-heading text-2xl font-light tracking-tight sm:text-3xl lg:text-4xl">
             {props.title}
           </h2>
           <Show when={props.subtitle}>
-            <p class="text-ink-muted mt-3 text-base leading-relaxed sm:mt-4 sm:text-lg">
+            <p class="font-body text-ink-muted mt-3 text-base leading-relaxed sm:mt-4 sm:text-lg">
               {props.subtitle}
             </p>
           </Show>
@@ -100,6 +100,7 @@ export function MinistriesSection(props: MinistriesSectionProps) {
               alt={props.more.image.alt}
               scrim="none"
               tone="natural"
+              responsive={false}
               fill={false}
               imageObjectPosition={props.more.image.imageObjectPosition ?? "72% center"}
               class="h-full w-full object-cover"
@@ -111,13 +112,13 @@ export function MinistriesSection(props: MinistriesSectionProps) {
         <div class="relative z-10 flex min-h-[inherit] items-center">
           <div class="mx-auto w-full max-w-page px-4 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-14">
             <div class="max-w-md text-left sm:max-w-lg">
-              <p class="text-brand-200 text-xs font-semibold uppercase tracking-wider sm:text-sm">
+              <p class="font-ui text-brand-200 text-xs font-semibold uppercase tracking-wider sm:text-sm">
                 {props.more.eyebrow}
               </p>
-              <h3 class="text-on-hero mt-2 text-xl font-semibold tracking-tight sm:text-2xl lg:text-3xl">
+              <h3 class="font-display text-on-hero mt-2 text-xl font-light tracking-tight sm:text-2xl lg:text-3xl">
                 {props.more.title}
               </h3>
-              <p class="text-on-hero-muted mt-2 text-sm leading-relaxed sm:text-base">
+              <p class="font-body text-on-hero-muted mt-2 text-sm leading-relaxed sm:text-base">
                 {props.more.description}
               </p>
               <Button

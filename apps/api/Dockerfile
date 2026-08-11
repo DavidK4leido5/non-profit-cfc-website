@@ -1,4 +1,8 @@
-FROM golang:1.22-bookworm
+FROM golang:1.25-bookworm
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -11,11 +15,13 @@ WORKDIR /app
 COPY apps/api ./apps/api
 
 WORKDIR /app/apps/api
-RUN go mod vendor
+RUN go mod vendor \
+  && go build -mod=vendor -o /usr/local/bin/church-api ./cmd/server \
+  && chmod +x /usr/local/bin/church-api
 
-RUN chmod +x /app/apps/api/entrypoint.sh
+ENV PORT=8080
+ENV MIGRATIONS_DIR=/app/apps/api/migrations
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/apps/api/entrypoint.sh"]
-CMD ["go", "run", "-mod=vendor", "./cmd/server"]
+CMD ["/usr/local/bin/church-api"]

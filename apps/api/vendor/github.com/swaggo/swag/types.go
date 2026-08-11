@@ -2,9 +2,6 @@ package swag
 
 import (
 	"go/ast"
-	"go/token"
-	"regexp"
-	"strings"
 
 	"github.com/go-openapi/spec"
 )
@@ -24,91 +21,31 @@ type TypeSpecDef struct {
 	// the TypeSpec of this type definition
 	TypeSpec *ast.TypeSpec
 
-	Enums []EnumValue
-
 	// path of package starting from under ${GOPATH}/src or from module path in go.mod
-	PkgPath    string
-	ParentSpec ast.Decl
-
-	SchemaName string
-
-	NotUnique bool
+	PkgPath string
 }
 
 // Name the name of the typeSpec.
 func (t *TypeSpecDef) Name() string {
-	if t.TypeSpec != nil && t.TypeSpec.Name != nil {
+	if t.TypeSpec != nil {
 		return t.TypeSpec.Name.Name
 	}
 
 	return ""
 }
 
-// TypeName the type name of the typeSpec.
-func (t *TypeSpecDef) TypeName() string {
-	if ignoreNameOverride(t.TypeSpec.Name.Name) {
-		return t.TypeSpec.Name.Name[1:]
-	}
-
-	var names []string
-	if t.NotUnique {
-		pkgPath := strings.Map(func(r rune) rune {
-			if r == '\\' || r == '/' || r == '.' {
-				return '_'
-			}
-			return r
-		}, t.PkgPath)
-		names = append(names, pkgPath)
-	} else if t.File != nil {
-		names = append(names, t.File.Name.Name)
-	}
-	if parentFun, ok := (t.ParentSpec).(*ast.FuncDecl); ok && parentFun != nil {
-		names = append(names, parentFun.Name.Name)
-	}
-	names = append(names, t.TypeSpec.Name.Name)
-	return fullTypeName(names...)
+// FullName full name of the typeSpec.
+func (t *TypeSpecDef) FullName() string {
+	return fullTypeName(t.File.Name.Name, t.TypeSpec.Name.Name)
 }
 
-// FullPath return the full path of the typeSpec.
+// FullPath of the typeSpec.
 func (t *TypeSpecDef) FullPath() string {
 	return t.PkgPath + "." + t.Name()
 }
 
-const regexCaseInsensitive = "(?i)"
-
-var reTypeName = regexp.MustCompile(regexCaseInsensitive + `^@name\s+(\S+)`)
-
-func (t *TypeSpecDef) Alias() string {
-	if t.TypeSpec.Comment == nil {
-		return ""
-	}
-
-	// get alias from comment '// @name '
-	for _, comment := range t.TypeSpec.Comment.List {
-		trimmedComment := strings.TrimSpace(strings.TrimLeft(comment.Text, "/"))
-		texts := reTypeName.FindStringSubmatch(trimmedComment)
-		if len(texts) > 1 {
-			return texts[1]
-		}
-	}
-
-	return ""
-}
-
-func (t *TypeSpecDef) SetSchemaName() {
-	if alias := t.Alias(); alias != "" {
-		t.SchemaName = alias
-		return
-	}
-
-	t.SchemaName = t.TypeName()
-}
-
 // AstFileInfo information of an ast.File.
 type AstFileInfo struct {
-	//FileSet the FileSet object which is used to parse this go source file
-	FileSet *token.FileSet
-
 	// File ast.File
 	File *ast.File
 
@@ -117,7 +54,16 @@ type AstFileInfo struct {
 
 	// PackagePath package import path of the ast.File
 	PackagePath string
+}
 
-	// ParseFlag determine what to parse
-	ParseFlag ParseFlag
+// PackageDefinitions files and definition in a package.
+type PackageDefinitions struct {
+	// files in this package, map key is file's relative path starting package path
+	Files map[string]*ast.File
+
+	// definitions in this package, map key is typeName
+	TypeDefinitions map[string]*TypeSpecDef
+
+	// package name
+	Name string
 }

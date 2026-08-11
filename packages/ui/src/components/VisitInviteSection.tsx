@@ -26,7 +26,7 @@ export function VisitInviteSection(props: VisitInviteSectionProps) {
     >
       <div class="mx-auto max-w-page px-4 py-14 text-center sm:py-16 lg:px-10 lg:py-20">
         <motion.h2
-          class="text-ink-heading mx-auto max-w-2xl text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl"
+          class="font-display text-ink-heading mx-auto max-w-2xl text-2xl font-light tracking-tight sm:text-3xl lg:text-4xl"
           variants={fadeUpItem}
           transition={easeOut}
         >
@@ -34,7 +34,7 @@ export function VisitInviteSection(props: VisitInviteSectionProps) {
         </motion.h2>
         {props.subtitle && (
           <motion.p
-            class="text-ink-muted mx-auto mt-4 max-w-xl text-base leading-relaxed sm:text-lg"
+            class="font-body text-ink-muted mx-auto mt-4 max-w-xl text-base leading-relaxed sm:text-lg"
             variants={fadeUpItem}
             transition={easeOut}
           >

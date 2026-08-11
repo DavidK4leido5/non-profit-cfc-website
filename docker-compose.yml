@@ -1,8 +1,8 @@
 name: church-page
 
 # Dev:  docker compose up --watch
-# File sync: bind mounts (web + api). Watch restarts api on Go changes and rebuilds web on lockfile changes.
-# `docker compose up -d` alone does NOT enable watch actions.
+# API: image rebuild on Go changes. Web: bind mount + Vite.
+# Root `.env` is loaded for both services.
 
 services:
   web:
@@ -14,20 +14,26 @@ services:
     ports:
       - "${WEB_PORT:-5173}:5173"
       - "${STORYBOOK_PORT:-6006}:6006"
+    env_file:
+      - .env
     environment:
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "500"
       WATCHPACK_POLLING: "true"
       TURBO_TELEMETRY_DISABLED: "1"
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+      VITE_APP_NAME: ${VITE_APP_NAME:-Church}
+      VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME:-}
+      VITE_ADMIN_API_TOKEN: ${VITE_ADMIN_API_TOKEN:-}
       VITE_API_PROXY: http://api:8080
     volumes:
       - .:/app
       - church_node_modules:/app/node_modules
-      # Host pnpm symlinks break inside the container — keep workspace node_modules in Docker only
       - /app/apps/web/node_modules
       - /app/packages/ui/node_modules
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     command: ["pnpm", "exec", "turbo", "run", "dev", "--filter=@church/web", "--filter=@church/ui"]
     develop:
       watch:
@@ -47,24 +53,36 @@ services:
       dockerfile: ./apps/api/Dockerfile
     ports:
       - "${API_PORT:-8080}:8080"
+    env_file:
+      - .env
     environment:
       PORT: "8080"
-      ENV: development
-      CORS_ORIGINS: "http://localhost:5173"
-    volumes:
-      - ./apps/api:/app/apps/api
-      - go_mod_cache:/go/pkg/mod
+      ENV: ${ENV:-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-church_session}
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-dev-admin-token-change-me}
+      MIGRATIONS_DIR: /app/apps/api/migrations
+      DATABASE_URL: ${DATABASE_URL:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      CLOUDINARY_FOLDER: ${CLOUDINARY_FOLDER:-church-dev}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
     develop:
       watch:
-        - action: sync+restart
+        - action: rebuild
           path: ./apps/api
-          target: /app/apps/api
           ignore:
             - vendor/
             - bin/
+            - docs/
         - action: rebuild
           path: ./apps/api/Dockerfile
 
 volumes:
   church_node_modules:
-  go_mod_cache:

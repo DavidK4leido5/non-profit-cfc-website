@@ -45,7 +45,7 @@ export function G12VisionSection(props: G12VisionSectionProps) {
           variants={fadeUpItem}
           transition={easeOut}
         >
-          <h2 class="text-ink-heading text-center text-4xl font-bold tracking-tight uppercase sm:text-5xl lg:text-left lg:text-6xl xl:text-7xl">
+          <h2 class="font-display text-ink-heading text-center text-4xl font-light tracking-tight uppercase sm:text-5xl lg:text-left lg:text-6xl xl:text-7xl">
             {props.headerTitle}
           </h2>
           <img
@@ -63,32 +63,32 @@ export function G12VisionSection(props: G12VisionSectionProps) {
             variants={fadeUpItem}
             transition={easeOut}
           >
-            <p class="text-brand-600 text-xs font-semibold uppercase tracking-wider sm:text-sm">
+            <p class="font-ui text-brand-600 text-xs font-semibold uppercase tracking-wider sm:text-sm">
               {props.eyebrow}
             </p>
 
             <blockquote class="border-brand-200 mt-5 border-s-4 ps-5 sm:mt-6">
-              <p class="text-ink-heading text-lg leading-relaxed font-medium italic sm:text-xl">
+              <p class="font-body text-ink-heading text-lg leading-relaxed font-medium italic sm:text-xl">
                 &ldquo;{props.scripture.text}&rdquo;
               </p>
-              <footer class="text-ink-subtle mt-3 text-sm font-medium not-italic">
+              <footer class="font-ui text-ink-subtle mt-3 text-sm font-medium not-italic">
                 — {props.scripture.reference}
               </footer>
             </blockquote>
 
-            <p class="text-ink-muted mt-6 text-base leading-relaxed sm:mt-8 sm:text-lg">
+            <p class="font-body text-ink-muted mt-6 text-base leading-relaxed sm:mt-8 sm:text-lg">
               {props.intro}
             </p>
 
             <Show when={props.closing}>
-              <p class="text-ink-heading mt-6 text-sm leading-relaxed font-medium sm:text-base">
+              <p class="font-body text-ink-heading mt-6 text-sm leading-relaxed font-medium sm:text-base">
                 {props.closing}
               </p>
             </Show>
           </motion.div>
 
           <motion.div class="lg:w-1/2" variants={fadeUpItem} transition={{ ...easeOut, delay: 0.06 }}>
-            <h3 class="text-ink-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+            <h3 class="font-display text-ink-heading text-2xl font-light tracking-tight sm:text-3xl">
               {props.title}
             </h3>
 
@@ -97,16 +97,16 @@ export function G12VisionSection(props: G12VisionSectionProps) {
                 {(step, index) => (
                   <li class="flex gap-4 sm:gap-5">
                     <span
-                      class="bg-brand-500 text-on-hero flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold sm:h-10 sm:w-10"
+                      class="bg-brand-500 text-on-hero font-ui flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold sm:h-10 sm:w-10"
                       aria-hidden="true"
                     >
                       {index() + 1}
                     </span>
                     <div class="min-w-0 pt-0.5">
-                      <h4 class="text-ink-heading text-lg font-semibold tracking-tight sm:text-xl">
+                      <h4 class="font-display text-ink-heading text-lg font-light tracking-tight sm:text-xl">
                         {step.title}
                       </h4>
-                      <p class="text-ink-muted mt-1.5 text-sm leading-relaxed sm:text-base">
+                      <p class="font-body text-ink-muted mt-1.5 text-sm leading-relaxed sm:text-base">
                         {step.description}
                       </p>
                     </div>

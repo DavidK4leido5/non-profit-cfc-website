@@ -89,14 +89,14 @@ function linkClass(
   }
 
   if (active) {
-    return transparent
-      ? `${base} font-medium text-brand-600`
-      : `${base} font-medium text-brand-600 bg-brand-50`;
+    return `${base} font-medium text-brand-600 bg-brand-50`;
   }
 
-  return transparent
-    ? `${base} text-ink-muted hover:text-ink-heading`
-    : `${base} text-ink-muted hover:text-ink hover:bg-surface-muted`;
+  return `${base} text-ink-muted hover:text-ink hover:bg-surface-muted`;
+}
+
+function usesLightHeroNav(transparent: boolean, tone: "light" | "dark") {
+  return transparent && tone === "light";
 }
 
 export function Navbar(props: NavbarProps) {
@@ -156,6 +156,8 @@ export function Navbar(props: NavbarProps) {
     };
   };
 
+  const lightHeroNav = () => usesLightHeroNav(transparent(), tone());
+
   return (
     <motion.header
       class={`z-50 ${
@@ -175,9 +177,7 @@ export function Navbar(props: NavbarProps) {
         <NavAnchor
           href={local.brand.href}
           class={`flex min-w-0 max-w-[min(100%,16rem)] items-center gap-2.5 sm:max-w-none sm:gap-3 ${
-            transparent() && tone() === "light"
-              ? "text-white"
-              : "text-ink-heading"
+            lightHeroNav() ? "text-white" : "text-ink-heading"
           }`}
           onClick={closeMenu}
         >
@@ -192,7 +192,7 @@ export function Navbar(props: NavbarProps) {
               />
             )}
           </Show>
-          <span class="truncate text-base font-semibold tracking-tight sm:text-lg">
+          <span class="font-ui truncate text-base font-semibold tracking-tight sm:text-lg">
             {local.brand.name}
           </span>
         </NavAnchor>
@@ -235,9 +235,7 @@ export function Navbar(props: NavbarProps) {
         <button
           type="button"
           class={`inline-flex shrink-0 items-center justify-center rounded-md p-2 transition-colors md:hidden ${
-            transparent() && tone() === "light"
-              ? "hover:bg-white/10"
-              : "hover:bg-surface-muted"
+            lightHeroNav() ? "hover:bg-white/10" : "hover:bg-surface-muted"
           }`}
           aria-expanded={menuOpen()}
           aria-controls="mobile-nav"
@@ -246,11 +244,7 @@ export function Navbar(props: NavbarProps) {
         >
           <MenuIcon
             open={menuOpen()}
-            class={
-              transparent() && tone() === "light"
-                ? "h-6 w-6 text-white"
-                : "h-6 w-6 text-ink-heading"
-            }
+            class={lightHeroNav() ? "h-6 w-6 text-white" : "h-6 w-6 text-ink-heading"}
           />
         </button>
       </div>

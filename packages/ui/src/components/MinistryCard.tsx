@@ -87,10 +87,10 @@ export function MinistryCard(props: MinistryCardProps) {
         viewport={{ once: true, margin: "-5% 0px" }}
         transition={{ ...easeOut, delay: 0.08 }}
       >
-        <h3 class="text-ink-heading text-xl font-semibold tracking-tight sm:text-2xl">
+        <h3 class="font-display text-ink-heading text-xl font-light tracking-tight sm:text-2xl">
           {local.title}
         </h3>
-        <p class="text-ink-muted max-w-sm text-sm leading-relaxed sm:text-base">
+        <p class="font-body text-ink-muted max-w-sm text-sm leading-relaxed sm:text-base">
           {local.description}
         </p>
       </motion.div>

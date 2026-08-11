@@ -1,18 +1,21 @@
 package handler
 
 import (
-	"encoding/json"
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/church-page/api/internal/config"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type HealthHandler struct {
-	cfg config.Config
+	cfg  config.Config
+	pool *pgxpool.Pool
 }
 
-func NewHealthHandler(cfg config.Config) *HealthHandler {
-	return &HealthHandler{cfg: cfg}
+func NewHealthHandler(cfg config.Config, pool *pgxpool.Pool) *HealthHandler {
+	return &HealthHandler{cfg: cfg, pool: pool}
 }
 
 // Liveness godoc
@@ -28,13 +31,13 @@ func (h *HealthHandler) Liveness(w http.ResponseWriter, _ *http.Request) {
 
 // Readiness godoc
 // @Summary      Readiness probe
-// @Description  Returns 200 when the API is ready to serve traffic. Database status is informational until Neon is connected.
+// @Description  Returns 200 when the API is ready. Pings Neon when DATABASE_URL is set.
 // @Tags         health
 // @Produce      json
 // @Success      200  {object}  HealthResponse
 // @Router       /ready [get]
 func (h *HealthHandler) Readiness(w http.ResponseWriter, _ *http.Request) {
-	if h.cfg.DatabaseURL == "" {
+	if h.cfg.DatabaseURL == "" || h.pool == nil {
 		writeJSON(w, http.StatusOK, HealthResponse{
 			Status:   "ok",
 			Database: "not configured",
@@ -42,23 +45,18 @@ func (h *HealthHandler) Readiness(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := h.pool.Ping(ctx); err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, HealthResponse{
+			Status:   "unavailable",
+			Database: "unreachable",
+		})
+		return
+	}
+
 	writeJSON(w, http.StatusOK, HealthResponse{
 		Status:   "ok",
-		Database: "configured",
-	})
-}
-
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
-}
-
-func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, ErrorResponse{
-		Error: ErrorBody{
-			Code:    code,
-			Message: message,
-		},
+		Database: "up",
 	})
 }

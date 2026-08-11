@@ -26,7 +26,7 @@ export function HeroPreviewCard(props: HeroPreviewCardProps) {
           loading="eager"
         />
         <Show when={props.badge}>
-          <span class="bg-brand-600 text-ink-inverse absolute left-4 top-4 rounded-full px-3 py-1 text-xs font-medium">
+          <span class="bg-brand-600 text-ink-inverse font-ui absolute left-4 top-4 rounded-full px-3 py-1 text-xs font-medium">
             {props.badge}
           </span>
         </Show>
@@ -37,8 +37,8 @@ export function HeroPreviewCard(props: HeroPreviewCardProps) {
           <For each={props.stats}>
             {(stat) => (
               <div class="bg-surface px-4 py-4">
-                <p class="text-ink-heading text-lg font-semibold">{stat.value}</p>
-                <p class="text-ink-subtle mt-1 text-xs">{stat.label}</p>
+                <p class="font-display text-ink-heading text-lg font-light">{stat.value}</p>
+                <p class="font-ui text-ink-subtle mt-1 text-xs">{stat.label}</p>
               </div>
             )}
           </For>

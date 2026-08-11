@@ -24,7 +24,9 @@
       ],
       "@church/ui/site-footer": ["../../packages/ui/src/components/SiteFooter.tsx"],
       "@church/ui/page-shell": ["../../packages/ui/src/components/PageShell.tsx"],
-      "@church/ui/motion": ["../../packages/ui/src/motion/index.ts"]
+      "@church/ui/board-page": ["../../packages/ui/src/components/BoardPageView.tsx"],
+      "@church/ui/motion": ["../../packages/ui/src/motion/index.ts"],
+      "@church/ui/responsive-image": ["../../packages/ui/src/images/responsive-image.ts"]
     }
   },
   "include": ["src"]

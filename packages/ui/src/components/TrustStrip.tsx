@@ -25,7 +25,7 @@ export function TrustStrip(props: TrustStripProps) {
       <div class="mx-auto max-w-page px-4 py-10 sm:py-12 lg:px-10">
         {props.title && (
           <motion.p
-            class="text-ink-subtle mb-6 text-center text-xs font-medium uppercase tracking-wider sm:mb-8 sm:text-sm"
+            class="font-ui text-ink-subtle mb-6 text-center text-xs font-medium uppercase tracking-wider sm:mb-8 sm:text-sm"
             variants={fadeUpItem}
             transition={easeOut}
           >
@@ -36,10 +36,10 @@ export function TrustStrip(props: TrustStripProps) {
           <For each={props.items}>
             {(item) => (
               <motion.div class="text-center" variants={fadeUpItem} transition={easeOut}>
-                <p class="text-ink-heading text-xl font-semibold sm:text-2xl md:text-3xl">
+                <p class="font-display text-ink-heading text-xl font-light sm:text-2xl md:text-3xl">
                   {item.value}
                 </p>
-                <p class="text-ink-muted mt-1.5 text-xs leading-snug sm:mt-2 sm:text-sm">
+                <p class="font-body text-ink-muted mt-1.5 text-xs leading-snug sm:mt-2 sm:text-sm">
                   {item.label}
                 </p>
               </motion.div>
