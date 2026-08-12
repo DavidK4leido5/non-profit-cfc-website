@@ -26,10 +26,17 @@ export function BoardHero(props: BoardHeroProps) {
         <PosterImage
           src={props.background.src}
           alt={props.background.alt}
-          class="h-full w-full object-cover"
+          class="h-full w-full object-cover object-center"
           loading="eager"
         />
-        <div class="board-hero-scrim absolute inset-0" />
+        <div
+          class="absolute inset-0 bg-gradient-to-b from-primary/55 via-primary/45 to-primary"
+          aria-hidden="true"
+        />
+        <div
+          class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-primary via-primary/90 to-transparent"
+          aria-hidden="true"
+        />
       </div>
 
       <motion.div

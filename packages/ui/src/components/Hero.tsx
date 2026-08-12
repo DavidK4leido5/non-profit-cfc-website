@@ -1,8 +1,12 @@
 import { JSX, Show } from "solid-js";
 import { motion } from "motion-solid";
 import { easeOut, fadeUpItem, fadeUpStagger } from "../motion/presets";
-import { Button } from "./Button";
+import { CtaButton } from "./CtaButton";
 import { GradedImage } from "./GradedImage";
+import {
+  HeroFeatureStrip,
+  type HeroFeatureStripProps,
+} from "./HeroFeatureStrip";
 
 export type HeroCta = {
   label: string;
@@ -12,6 +16,8 @@ export type HeroCta = {
 export type HeroBackground = {
   src: string;
   alt: string;
+  /** Flip horizontally (e.g. move a left-side subject to the right) */
+  mirror?: boolean;
 };
 
 export type HeroStat = {
@@ -20,123 +26,85 @@ export type HeroStat = {
 };
 
 export type HeroProps = {
-  eyebrow: string;
   headline: string;
   subcopy: string;
   primaryCta: HeroCta;
-  secondaryCta?: HeroCta;
-  /** Full-bleed background — set in site.content.ts (e.g. /images/hero-bg.jpg) */
+  /** Full-bleed background — set in site.content.ts */
   background: HeroBackground;
+  /** Three-column band flush under the photo (quote / media / next service) */
+  featureStrip?: HeroFeatureStripProps;
+  /** @deprecated Kept for Storybook legacy stories */
+  secondaryCta?: HeroCta;
+  eyebrow?: string;
   badge?: string;
   stats?: readonly HeroStat[];
-  /** Optional floating card (Storybook / legacy layouts) */
   preview?: JSX.Element;
   class?: string;
 };
 
+/**
+ * Landing hero — photo + copy + optional feature strip in one 100vh composition.
+ * Site nav stays in Navbar; colors stay on brand tokens.
+ */
 export function Hero(props: HeroProps) {
   return (
     <section
-      class={`relative flex min-h-dvh items-center overflow-hidden ${props.class ?? ""}`}
+      class={`relative flex h-dvh max-h-dvh flex-col ${props.class ?? ""}`}
     >
-      <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <GradedImage
-          src={props.background.src}
-          alt={props.background.alt}
-          scrim="hero"
-          responsive={false}
-          fill
-          class="scale-105 object-center"
-          loading="eager"
-        />
-      </div>
+      <div class="relative flex min-h-0 flex-1 flex-col">
+        <div
+          class="pointer-events-none absolute inset-0 overflow-hidden"
+          aria-hidden="true"
+        >
+          <GradedImage
+            src={props.background.src}
+            alt={props.background.alt}
+            scrim="hero"
+            responsive={false}
+            fill
+            class={`object-center ${props.background.mirror ? "-scale-x-100" : ""}`}
+            loading="eager"
+          />
+        </div>
 
-      <div class="relative mx-auto w-full max-w-page px-4 py-28 sm:px-6 sm:py-32 lg:px-10 lg:py-36">
-        <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,38rem)_1fr] lg:gap-16 xl:grid-cols-[minmax(0,42rem)_1fr]">
+        <div class="relative mx-auto mt-auto flex w-full max-w-page flex-col">
           <motion.div
-            class="max-w-2xl text-left"
+            class="max-w-3xl px-4 pb-8 pt-28 text-left sm:pb-10 sm:pt-32 md:px-4 lg:px-12 mb-16"
             initial="initial"
             animate="animate"
             variants={fadeUpStagger}
           >
-            <Show when={props.badge}>
-              <motion.span
-                class="bg-brand-500/90 text-on-hero font-ui mb-4 inline-block rounded-full px-3 py-1 text-xs font-medium backdrop-blur-sm sm:text-sm"
-                variants={fadeUpItem}
-                transition={easeOut}
-              >
-                {props.badge}
-              </motion.span>
-            </Show>
-
-            <motion.p
-              class="font-ui text-brand-200 text-xs font-medium uppercase tracking-wider sm:text-sm"
-              variants={fadeUpItem}
-              transition={easeOut}
-            >
-              {props.eyebrow}
-            </motion.p>
             <motion.h1
-              class="font-display text-on-hero mt-3 text-4xl font-light tracking-tight sm:mt-4 sm:text-5xl md:text-6xl lg:text-7xl lg:leading-[0.95]"
+              class="font-hero text-on-hero text-[2.35rem] font-extralight leading-[1.05] tracking-[-0.03em] sm:text-5xl md:text-6xl lg:text-7xl"
               variants={fadeUpItem}
               transition={easeOut}
             >
               {props.headline}
             </motion.h1>
             <motion.p
-              class="font-body text-on-hero-muted mt-4 max-w-xl text-base leading-relaxed sm:mt-6 sm:text-lg lg:max-w-none lg:text-xl"
+              class="font-hero text-on-hero-muted mt-4 max-w-xl text-base font-light leading-relaxed tracking-wide sm:text-lg md:text-xl"
               variants={fadeUpItem}
               transition={easeOut}
             >
               {props.subcopy}
             </motion.p>
             <motion.div
-              class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4"
+              class="mt-7 overflow-visible p-0.5 sm:mt-8"
               variants={fadeUpItem}
               transition={easeOut}
             >
-              <Button href={props.primaryCta.href} variant="primary" class="w-full sm:w-auto">
+              <CtaButton href={props.primaryCta.href} variant="cta" size="md">
                 {props.primaryCta.label}
-              </Button>
-              <Show when={props.secondaryCta}>
-                {(cta) => (
-                  <Button
-                    href={cta().href}
-                    variant="secondary"
-                    class="w-full border-white/30 bg-white/10 text-on-hero backdrop-blur-sm hover:bg-white/20 sm:w-auto"
-                  >
-                    {cta().label}
-                  </Button>
-                )}
-              </Show>
+              </CtaButton>
             </motion.div>
           </motion.div>
 
-          <Show when={props.stats && props.stats.length > 0}>
-            <motion.div
-              class="border-white/15 bg-white/10 grid w-full max-w-md grid-cols-2 gap-px overflow-hidden rounded-2xl border shadow-hero backdrop-blur-md lg:ml-auto lg:max-w-lg"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...easeOut, delay: 0.3 }}
-            >
-              {props.stats!.map((stat) => (
-                <div class="bg-brand-950/40 px-4 py-4 text-left sm:px-5 sm:py-5">
-                  <p class="text-on-hero text-xl font-semibold sm:text-2xl">{stat.value}</p>
-                  <p class="text-on-hero-subtle mt-1 text-xs sm:text-sm">{stat.label}</p>
-                </div>
-              ))}
-            </motion.div>
-          </Show>
-
-          <Show when={props.preview && !props.stats?.length}>
-            <motion.div
-              class="flex justify-start lg:justify-end"
-              initial={{ opacity: 0, y: 28, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ ...easeOut, delay: 0.28 }}
-            >
-              {props.preview}
-            </motion.div>
+          <Show when={props.featureStrip}>
+            {(strip) => (
+              <div class="relative z-10 mb-4 h-[min(28vh,16.5rem)] shrink-0 overflow-hidden rounded-md sm:mb-6 sm:h-[min(30vh,18rem)]">
+                <HeroFeatureStrip {...strip()} />
+              </div>
+            )}
           </Show>
         </div>
       </div>

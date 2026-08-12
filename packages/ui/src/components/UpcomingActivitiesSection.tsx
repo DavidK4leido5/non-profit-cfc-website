@@ -14,7 +14,7 @@ export function UpcomingActivitiesSection(props: UpcomingActivitiesSectionProps)
   return (
     <motion.section
       id="activities"
-      class={`border-t border-border bg-surface-subtle ${props.class ?? ""}`}
+      class={`border-t border-white/10 bg-primary ${props.class ?? ""}`}
       initial="initial"
       whileInView="animate"
       viewport={viewportOnce}
@@ -22,11 +22,11 @@ export function UpcomingActivitiesSection(props: UpcomingActivitiesSectionProps)
     >
       <div class="mx-auto max-w-page px-4 py-14 sm:py-16 lg:px-10 lg:py-20">
         <motion.div class="mx-auto mb-10 max-w-2xl text-center sm:mb-12" variants={fadeUpItem} transition={easeOut}>
-          <h2 class="font-display text-ink-heading text-2xl font-light tracking-tight sm:text-3xl lg:text-4xl">
+          <h2 class="font-display text-on-hero text-2xl font-light tracking-tight sm:text-3xl lg:text-4xl">
             {props.title}
           </h2>
           <Show when={props.subtitle}>
-            <p class="font-body text-ink-muted mt-3 text-base leading-relaxed sm:mt-4 sm:text-lg">
+            <p class="font-body text-on-hero-muted mt-3 text-base leading-relaxed sm:mt-4 sm:text-lg">
               {props.subtitle}
             </p>
           </Show>

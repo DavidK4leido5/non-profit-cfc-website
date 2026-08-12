@@ -2,21 +2,22 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/church-page/api/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type BoardsHandler struct {
-	pool *pgxpool.Pool
+	db *gorm.DB
 }
 
-func NewBoardsHandler(pool *pgxpool.Pool) *BoardsHandler {
-	return &BoardsHandler{pool: pool}
+func NewBoardsHandler(db *gorm.DB) *BoardsHandler {
+	return &BoardsHandler{db: db}
 }
 
 func (h *BoardsHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
@@ -28,14 +29,14 @@ func (h *BoardsHandler) GetAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BoardsHandler) getBoard(w http.ResponseWriter, r *http.Request, publishedOnly bool) {
-	var hero json.RawMessage
-	err := h.pool.QueryRow(r.Context(), `SELECT hero FROM board_settings WHERE id = 1`).Scan(&hero)
-	if err != nil && err != pgx.ErrNoRows {
+	var settings models.BoardSettings
+	err := h.db.WithContext(r.Context()).First(&settings, "id = ?", 1).Error
+	hero := json.RawMessage(`{}`)
+	if err == nil && len(settings.Hero) > 0 {
+		hero = settings.Hero
+	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to load board settings")
 		return
-	}
-	if hero == nil {
-		hero = json.RawMessage(`{}`)
 	}
 
 	ministries, err := h.listMinistries(r, publishedOnly)
@@ -56,10 +57,11 @@ func (h *BoardsHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.pool.Exec(r.Context(), `
-		INSERT INTO board_settings (id, hero, updated_at) VALUES (1, $1, now())
-		ON CONFLICT (id) DO UPDATE SET hero = EXCLUDED.hero, updated_at = now()
-	`, body.Hero)
+	settings := models.BoardSettings{ID: 1, Hero: body.Hero}
+	err := h.db.WithContext(r.Context()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"hero", "updated_at"}),
+	}).Create(&settings).Error
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to save board settings")
 		return
@@ -99,17 +101,17 @@ func (h *BoardsHandler) CreateMinistry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var item models.BoardMinistry
-	err := h.pool.QueryRow(r.Context(), `
-		INSERT INTO board_ministries (slug, title, tagline, image_src, image_alt, image_object_position, sort_order)
-		VALUES ($1,$2,$3,$4,$5,$6,$7)
-		RETURNING id, slug, title, tagline, image_src, image_alt, image_object_position, sort_order, created_at, updated_at
-	`, in.Slug, in.Title, clampString(in.Tagline, 300), clampString(in.ImageSrc, 2000), clampString(in.ImageAlt, 300),
-		clampString(in.ImageObjectPosition, 80), in.SortOrder).Scan(
-		&item.ID, &item.Slug, &item.Title, &item.Tagline, &item.ImageSrc, &item.ImageAlt,
-		&item.ImageObjectPosition, &item.SortOrder, &item.CreatedAt, &item.UpdatedAt,
-	)
-	if err != nil {
+	item := models.BoardMinistry{
+		ID:                  uuid.New(),
+		Slug:                in.Slug,
+		Title:               in.Title,
+		Tagline:             clampString(in.Tagline, 300),
+		ImageSrc:            clampString(in.ImageSrc, 2000),
+		ImageAlt:            clampString(in.ImageAlt, 300),
+		ImageObjectPosition: clampString(in.ImageObjectPosition, 80),
+		SortOrder:           in.SortOrder,
+	}
+	if err := h.db.WithContext(r.Context()).Create(&item).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to create ministry")
 		return
 	}
@@ -135,21 +137,24 @@ func (h *BoardsHandler) UpdateMinistry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var item models.BoardMinistry
-	err = h.pool.QueryRow(r.Context(), `
-		UPDATE board_ministries
-		SET slug=$2, title=$3, tagline=$4, image_src=$5, image_alt=$6, image_object_position=$7, sort_order=$8, updated_at=now()
-		WHERE id=$1
-		RETURNING id, slug, title, tagline, image_src, image_alt, image_object_position, sort_order, created_at, updated_at
-	`, id, in.Slug, in.Title, clampString(in.Tagline, 300), clampString(in.ImageSrc, 2000), clampString(in.ImageAlt, 300),
-		clampString(in.ImageObjectPosition, 80), in.SortOrder).Scan(
-		&item.ID, &item.Slug, &item.Title, &item.Tagline, &item.ImageSrc, &item.ImageAlt,
-		&item.ImageObjectPosition, &item.SortOrder, &item.CreatedAt, &item.UpdatedAt,
-	)
-	if err != nil {
-		if err == pgx.ErrNoRows {
+	if err := h.db.WithContext(r.Context()).First(&item, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Ministry not found")
 			return
 		}
+		writeError(w, http.StatusInternalServerError, "db_error", "Failed to update ministry")
+		return
+	}
+
+	item.Slug = in.Slug
+	item.Title = in.Title
+	item.Tagline = clampString(in.Tagline, 300)
+	item.ImageSrc = clampString(in.ImageSrc, 2000)
+	item.ImageAlt = clampString(in.ImageAlt, 300)
+	item.ImageObjectPosition = clampString(in.ImageObjectPosition, 80)
+	item.SortOrder = in.SortOrder
+
+	if err := h.db.WithContext(r.Context()).Save(&item).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to update ministry")
 		return
 	}
@@ -162,12 +167,12 @@ func (h *BoardsHandler) DeleteMinistry(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_id", "Invalid ministry id")
 		return
 	}
-	tag, err := h.pool.Exec(r.Context(), `DELETE FROM board_ministries WHERE id = $1`, id)
-	if err != nil {
+	res := h.db.WithContext(r.Context()).Delete(&models.BoardMinistry{}, "id = ?", id)
+	if res.Error != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to delete ministry")
 		return
 	}
-	if tag.RowsAffected() == 0 {
+	if res.RowsAffected == 0 {
 		writeError(w, http.StatusNotFound, "not_found", "Ministry not found")
 		return
 	}
@@ -248,26 +253,33 @@ func (h *BoardsHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var item models.BoardPost
-	err = h.pool.QueryRow(r.Context(), `
-		UPDATE board_posts SET
-			slug=$2, title=$3, body=$4, body_html=$5, body_gjs=$6, date_label=$7, tag=$8, pinned=$9,
-			image_src=$10, image_alt=$11, image_object_position=$12, variant=$13, palette=$14, align_text=$15,
-			sort_order=$16, status=$17, updated_at=now()
-		WHERE id=$1
-		RETURNING id, ministry_id, slug, title, body, body_html, body_gjs, date_label, tag, pinned,
-			image_src, image_alt, image_object_position, variant, palette, align_text, sort_order, status, created_at, updated_at
-	`, id, in.Slug, in.Title, clampString(in.Body, 4000), in.BodyHTML, nullableJSON(in.BodyGJS), clampString(in.DateLabel, 40),
-		in.Tag, in.Pinned, in.ImageSrc, in.ImageAlt, in.ImageObjectPosition, in.Variant, in.Palette, in.Align,
-		in.SortOrder, in.Status).Scan(
-		&item.ID, &item.MinistryID, &item.Slug, &item.Title, &item.Body, &item.BodyHTML, &item.BodyGJS,
-		&item.DateLabel, &item.Tag, &item.Pinned, &item.ImageSrc, &item.ImageAlt, &item.ImageObjectPosition,
-		&item.Variant, &item.Palette, &item.Align, &item.SortOrder, &item.Status, &item.CreatedAt, &item.UpdatedAt,
-	)
-	if err != nil {
-		if err == pgx.ErrNoRows {
+	if err := h.db.WithContext(r.Context()).First(&item, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Post not found")
 			return
 		}
+		writeError(w, http.StatusInternalServerError, "db_error", "Failed to update post")
+		return
+	}
+
+	item.Slug = in.Slug
+	item.Title = in.Title
+	item.Body = clampString(in.Body, 4000)
+	item.BodyHTML = in.BodyHTML
+	item.BodyGJS = cleanJSON(in.BodyGJS)
+	item.DateLabel = clampString(in.DateLabel, 40)
+	item.Tag = in.Tag
+	item.Pinned = in.Pinned
+	item.ImageSrc = in.ImageSrc
+	item.ImageAlt = in.ImageAlt
+	item.ImageObjectPosition = in.ImageObjectPosition
+	item.Variant = in.Variant
+	item.Palette = in.Palette
+	item.Align = in.Align
+	item.SortOrder = in.SortOrder
+	item.Status = in.Status
+
+	if err := h.db.WithContext(r.Context()).Save(&item).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to update post")
 		return
 	}
@@ -281,17 +293,8 @@ func (h *BoardsHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var item models.BoardPost
-	err = h.pool.QueryRow(r.Context(), `
-		SELECT id, ministry_id, slug, title, body, body_html, body_gjs, date_label, tag, pinned,
-			image_src, image_alt, image_object_position, variant, palette, align_text, sort_order, status, created_at, updated_at
-		FROM board_posts WHERE id = $1
-	`, id).Scan(
-		&item.ID, &item.MinistryID, &item.Slug, &item.Title, &item.Body, &item.BodyHTML, &item.BodyGJS,
-		&item.DateLabel, &item.Tag, &item.Pinned, &item.ImageSrc, &item.ImageAlt, &item.ImageObjectPosition,
-		&item.Variant, &item.Palette, &item.Align, &item.SortOrder, &item.Status, &item.CreatedAt, &item.UpdatedAt,
-	)
-	if err != nil {
-		if err == pgx.ErrNoRows {
+	if err := h.db.WithContext(r.Context()).First(&item, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Post not found")
 			return
 		}
@@ -307,12 +310,12 @@ func (h *BoardsHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_id", "Invalid post id")
 		return
 	}
-	tag, err := h.pool.Exec(r.Context(), `DELETE FROM board_posts WHERE id = $1`, id)
-	if err != nil {
+	res := h.db.WithContext(r.Context()).Delete(&models.BoardPost{}, "id = ?", id)
+	if res.Error != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to delete post")
 		return
 	}
-	if tag.RowsAffected() == 0 {
+	if res.RowsAffected == 0 {
 		writeError(w, http.StatusNotFound, "not_found", "Post not found")
 		return
 	}
@@ -329,22 +332,30 @@ func (h *BoardsHandler) insertPost(r *http.Request, ministryID uuid.UUID, in pos
 		in.Status = "published"
 	}
 
-	var item models.BoardPost
-	err := h.pool.QueryRow(r.Context(), `
-		INSERT INTO board_posts (
-			ministry_id, slug, title, body, body_html, body_gjs, date_label, tag, pinned,
-			image_src, image_alt, image_object_position, variant, palette, align_text, sort_order, status
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-		RETURNING id, ministry_id, slug, title, body, body_html, body_gjs, date_label, tag, pinned,
-			image_src, image_alt, image_object_position, variant, palette, align_text, sort_order, status, created_at, updated_at
-	`, ministryID, in.Slug, in.Title, clampString(in.Body, 4000), in.BodyHTML, nullableJSON(in.BodyGJS), clampString(in.DateLabel, 40),
-		in.Tag, in.Pinned, in.ImageSrc, in.ImageAlt, in.ImageObjectPosition, in.Variant, in.Palette, in.Align,
-		in.SortOrder, in.Status).Scan(
-		&item.ID, &item.MinistryID, &item.Slug, &item.Title, &item.Body, &item.BodyHTML, &item.BodyGJS,
-		&item.DateLabel, &item.Tag, &item.Pinned, &item.ImageSrc, &item.ImageAlt, &item.ImageObjectPosition,
-		&item.Variant, &item.Palette, &item.Align, &item.SortOrder, &item.Status, &item.CreatedAt, &item.UpdatedAt,
-	)
-	return item, err
+	item := models.BoardPost{
+		ID:                  uuid.New(),
+		MinistryID:          ministryID,
+		Slug:                in.Slug,
+		Title:               in.Title,
+		Body:                clampString(in.Body, 4000),
+		BodyHTML:            in.BodyHTML,
+		BodyGJS:             cleanJSON(in.BodyGJS),
+		DateLabel:           clampString(in.DateLabel, 40),
+		Tag:                 in.Tag,
+		Pinned:              in.Pinned,
+		ImageSrc:            in.ImageSrc,
+		ImageAlt:            in.ImageAlt,
+		ImageObjectPosition: in.ImageObjectPosition,
+		Variant:             in.Variant,
+		Palette:             in.Palette,
+		Align:               in.Align,
+		SortOrder:           in.SortOrder,
+		Status:              in.Status,
+	}
+	if err := h.db.WithContext(r.Context()).Create(&item).Error; err != nil {
+		return models.BoardPost{}, err
+	}
+	return item, nil
 }
 
 type validationError string
@@ -354,62 +365,36 @@ func (e validationError) Error() string { return string(e) }
 func errValidation(msg string) error { return validationError(msg) }
 
 func (h *BoardsHandler) listMinistries(r *http.Request, publishedOnly bool) ([]models.BoardMinistry, error) {
-	rows, err := h.pool.Query(r.Context(), `
-		SELECT id, slug, title, tagline, image_src, image_alt, image_object_position, sort_order, created_at, updated_at
-		FROM board_ministries
-		ORDER BY sort_order ASC, created_at ASC
-	`)
-	if err != nil {
+	var items []models.BoardMinistry
+	if err := h.db.WithContext(r.Context()).
+		Order("sort_order ASC, created_at ASC").
+		Find(&items).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	items := make([]models.BoardMinistry, 0)
-	for rows.Next() {
-		var item models.BoardMinistry
-		if err := rows.Scan(
-			&item.ID, &item.Slug, &item.Title, &item.Tagline, &item.ImageSrc, &item.ImageAlt,
-			&item.ImageObjectPosition, &item.SortOrder, &item.CreatedAt, &item.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		posts, err := h.listPosts(r, item.ID, publishedOnly)
+	for i := range items {
+		posts, err := h.listPosts(r, items[i].ID, publishedOnly)
 		if err != nil {
 			return nil, err
 		}
-		item.Posts = posts
-		items = append(items, item)
+		items[i].Posts = posts
 	}
-	return items, rows.Err()
+	if items == nil {
+		items = []models.BoardMinistry{}
+	}
+	return items, nil
 }
 
 func (h *BoardsHandler) listPosts(r *http.Request, ministryID uuid.UUID, publishedOnly bool) ([]models.BoardPost, error) {
-	query := `
-		SELECT id, ministry_id, slug, title, body, body_html, body_gjs, date_label, tag, pinned,
-			image_src, image_alt, image_object_position, variant, palette, align_text, sort_order, status, created_at, updated_at
-		FROM board_posts WHERE ministry_id = $1`
+	q := h.db.WithContext(r.Context()).Where("ministry_id = ?", ministryID)
 	if publishedOnly {
-		query += ` AND status = 'published'`
+		q = q.Where("status = ?", "published")
 	}
-	query += ` ORDER BY pinned DESC, sort_order ASC, created_at DESC`
-
-	rows, err := h.pool.Query(r.Context(), query, ministryID)
-	if err != nil {
+	var items []models.BoardPost
+	if err := q.Order("pinned DESC, sort_order ASC, created_at DESC").Find(&items).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	items := make([]models.BoardPost, 0)
-	for rows.Next() {
-		var item models.BoardPost
-		if err := rows.Scan(
-			&item.ID, &item.MinistryID, &item.Slug, &item.Title, &item.Body, &item.BodyHTML, &item.BodyGJS,
-			&item.DateLabel, &item.Tag, &item.Pinned, &item.ImageSrc, &item.ImageAlt, &item.ImageObjectPosition,
-			&item.Variant, &item.Palette, &item.Align, &item.SortOrder, &item.Status, &item.CreatedAt, &item.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, item)
+	if items == nil {
+		items = []models.BoardPost{}
 	}
-	return items, rows.Err()
+	return items, nil
 }

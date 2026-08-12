@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -8,44 +9,29 @@ import (
 	"github.com/church-page/api/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
 )
 
 type AssetsHandler struct {
-	pool *pgxpool.Pool
-	cld  *cloudinary.Client
+	db  *gorm.DB
+	cld *cloudinary.Client
 }
 
-func NewAssetsHandler(pool *pgxpool.Pool, cld *cloudinary.Client) *AssetsHandler {
-	return &AssetsHandler{pool: pool, cld: cld}
+func NewAssetsHandler(db *gorm.DB, cld *cloudinary.Client) *AssetsHandler {
+	return &AssetsHandler{db: db, cld: cld}
 }
 
 func (h *AssetsHandler) List(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.pool.Query(r.Context(), `
-		SELECT id, public_id, url, secure_url, resource_type, format, width, height, bytes, folder, original_filename, created_at, updated_at
-		FROM cloudinary_assets
-		ORDER BY created_at DESC
-		LIMIT 100
-	`)
-	if err != nil {
+	var items []models.Asset
+	if err := h.db.WithContext(r.Context()).
+		Order("created_at DESC").
+		Limit(100).
+		Find(&items).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to list assets")
 		return
 	}
-	defer rows.Close()
-
-	items := make([]models.Asset, 0)
-	for rows.Next() {
-		var item models.Asset
-		if err := rows.Scan(
-			&item.ID, &item.PublicID, &item.URL, &item.SecureURL, &item.ResourceType,
-			&item.Format, &item.Width, &item.Height, &item.Bytes, &item.Folder, &item.OriginalFilename,
-			&item.CreatedAt, &item.UpdatedAt,
-		); err != nil {
-			writeError(w, http.StatusInternalServerError, "db_error", "Failed to scan asset")
-			return
-		}
-		items = append(items, item)
+	if items == nil {
+		items = []models.Asset{}
 	}
 	writeData(w, http.StatusOK, items)
 }
@@ -57,9 +43,9 @@ func (h *AssetsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.scanOne(r, id)
+	item, err := h.getByID(r, id)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Asset not found")
 			return
 		}
@@ -100,22 +86,20 @@ func (h *AssetsHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	folder := cloudinary.FolderFromPublicID(uploaded.PublicID)
-	var item models.Asset
-	err = h.pool.QueryRow(r.Context(), `
-		INSERT INTO cloudinary_assets (
-			public_id, url, secure_url, resource_type, format, width, height, bytes, folder, original_filename
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-		RETURNING id, public_id, url, secure_url, resource_type, format, width, height, bytes, folder, original_filename, created_at, updated_at
-	`,
-		uploaded.PublicID, uploaded.URL, uploaded.SecureURL, uploaded.ResourceType,
-		nullIfEmpty(uploaded.Format), nullIfZero(uploaded.Width), nullIfZero(uploaded.Height), nullIfZero(uploaded.Bytes),
-		nullIfEmpty(folder), nullIfEmpty(uploaded.OriginalFilename),
-	).Scan(
-		&item.ID, &item.PublicID, &item.URL, &item.SecureURL, &item.ResourceType,
-		&item.Format, &item.Width, &item.Height, &item.Bytes, &item.Folder, &item.OriginalFilename,
-		&item.CreatedAt, &item.UpdatedAt,
-	)
-	if err != nil {
+	item := models.Asset{
+		ID:               uuid.New(),
+		PublicID:         uploaded.PublicID,
+		URL:              uploaded.URL,
+		SecureURL:        uploaded.SecureURL,
+		ResourceType:     uploaded.ResourceType,
+		Format:           nullIfEmpty(uploaded.Format),
+		Width:            nullIfZero(uploaded.Width),
+		Height:           nullIfZero(uploaded.Height),
+		Bytes:            nullIfZero(uploaded.Bytes),
+		Folder:           nullIfEmpty(folder),
+		OriginalFilename: nullIfEmpty(uploaded.OriginalFilename),
+	}
+	if err := h.db.WithContext(r.Context()).Create(&item).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to save asset record")
 		return
 	}
@@ -130,10 +114,9 @@ func (h *AssetsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var publicID string
-	err = h.pool.QueryRow(r.Context(), `SELECT public_id FROM cloudinary_assets WHERE id = $1`, id).Scan(&publicID)
+	item, err := h.getByID(r, id)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Asset not found")
 			return
 		}
@@ -142,11 +125,10 @@ func (h *AssetsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.cld != nil {
-		_ = h.cld.Destroy(r.Context(), publicID)
+		_ = h.cld.Destroy(r.Context(), item.PublicID)
 	}
 
-	_, err = h.pool.Exec(r.Context(), `DELETE FROM cloudinary_assets WHERE id = $1`, id)
-	if err != nil {
+	if err := h.db.WithContext(r.Context()).Delete(&item).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to delete asset")
 		return
 	}
@@ -154,16 +136,9 @@ func (h *AssetsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	writeData(w, http.StatusOK, map[string]string{"message": "deleted"})
 }
 
-func (h *AssetsHandler) scanOne(r *http.Request, id uuid.UUID) (models.Asset, error) {
+func (h *AssetsHandler) getByID(r *http.Request, id uuid.UUID) (models.Asset, error) {
 	var item models.Asset
-	err := h.pool.QueryRow(r.Context(), `
-		SELECT id, public_id, url, secure_url, resource_type, format, width, height, bytes, folder, original_filename, created_at, updated_at
-		FROM cloudinary_assets WHERE id = $1
-	`, id).Scan(
-		&item.ID, &item.PublicID, &item.URL, &item.SecureURL, &item.ResourceType,
-		&item.Format, &item.Width, &item.Height, &item.Bytes, &item.Folder, &item.OriginalFilename,
-		&item.CreatedAt, &item.UpdatedAt,
-	)
+	err := h.db.WithContext(r.Context()).First(&item, "id = ?", id).Error
 	return item, err
 }
 

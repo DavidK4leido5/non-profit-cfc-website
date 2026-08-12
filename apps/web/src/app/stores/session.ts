@@ -1,36 +1,29 @@
-import { createStore } from "solid-js/store";
+import { authClient, getUserRole, type AuthUser } from "~/lib/auth-client";
 
 export type SessionUser = {
   id: string;
   name: string;
   email: string;
-  roles: string[];
+  role: string;
+  image?: string | null;
 };
 
-type SessionState = {
-  user: SessionUser | null;
-  loading: boolean;
-};
-
-export const [session, setSession] = createStore<SessionState>({
-  user: null,
-  loading: false,
-});
-
-export function clearSession() {
-  setSession("user", null);
+export function toSessionUser(user: AuthUser | null | undefined): SessionUser | null {
+  if (!user) return null;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: getUserRole(user),
+    image: user.image,
+  };
 }
 
-// Call from a route loader or on mount once auth endpoints exist.
-export async function loadSession() {
-  setSession("loading", true);
-  try {
-    const { apiFetch } = await import("~/app/lib/api-client");
-    const data = await apiFetch<{ data: SessionUser }>("/auth/me");
-    setSession("user", data.data);
-  } catch {
-    setSession("user", null);
-  } finally {
-    setSession("loading", false);
-  }
+export async function signOut() {
+  await authClient.signOut();
+}
+
+/** Reactive Better Auth session — call inside a component. */
+export function useAuthSession() {
+  return authClient.useSession();
 }

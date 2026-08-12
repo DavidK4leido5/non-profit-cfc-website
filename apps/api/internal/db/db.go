@@ -9,45 +9,51 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-func Connect(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
+func Open(databaseURL string) (*gorm.DB, error) {
 	if databaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL is empty")
 	}
 
-	cfg, err := pgxpool.ParseConfig(databaseURL)
+	gdb, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{
+		Logger:                 logger.Default.LogMode(logger.Warn),
+		SkipDefaultTransaction: true,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("parse database url: %w", err)
-	}
-	cfg.MaxConns = 8
-	cfg.MinConns = 1
-	cfg.MaxConnLifetime = time.Hour
-
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("connect: %w", err)
+		return nil, fmt.Errorf("gorm open: %w", err)
 	}
 
-	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	sqlDB, err := gdb.DB()
+	if err != nil {
+		return nil, fmt.Errorf("sql db: %w", err)
+	}
+	sqlDB.SetMaxOpenConns(8)
+	sqlDB.SetMaxIdleConns(2)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := pool.Ping(pingCtx); err != nil {
-		pool.Close()
+	if err := sqlDB.PingContext(ctx); err != nil {
+		_ = sqlDB.Close()
 		return nil, fmt.Errorf("ping: %w", err)
 	}
 
-	return pool, nil
+	return gdb, nil
 }
 
-func Migrate(ctx context.Context, pool *pgxpool.Pool, migrationsDir string) error {
-	_, err := pool.Exec(ctx, `
+func Migrate(ctx context.Context, gdb *gorm.DB, migrationsDir string) error {
+	db := gdb.WithContext(ctx)
+
+	if err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			filename TEXT PRIMARY KEY,
 			applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`)
-	if err != nil {
+	`).Error; err != nil {
 		return fmt.Errorf("schema_migrations: %w", err)
 	}
 
@@ -67,7 +73,7 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool, migrationsDir string) erro
 
 	for _, name := range ups {
 		var exists bool
-		if err := pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE filename = $1)`, name).Scan(&exists); err != nil {
+		if err := db.Raw(`SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE filename = ?)`, name).Scan(&exists).Error; err != nil {
 			return err
 		}
 		if exists {
@@ -79,23 +85,30 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool, migrationsDir string) erro
 			return fmt.Errorf("read %s: %w", name, err)
 		}
 
-		tx, err := pool.Begin(ctx)
+		err = db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Exec(string(body)).Error; err != nil {
+				return fmt.Errorf("apply %s: %w", name, err)
+			}
+			if err := tx.Exec(`INSERT INTO schema_migrations (filename) VALUES (?)`, name).Error; err != nil {
+				return fmt.Errorf("record %s: %w", name, err)
+			}
+			return nil
+		})
 		if err != nil {
-			return err
-		}
-
-		if _, err := tx.Exec(ctx, string(body)); err != nil {
-			_ = tx.Rollback(ctx)
-			return fmt.Errorf("apply %s: %w", name, err)
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO schema_migrations (filename) VALUES ($1)`, name); err != nil {
-			_ = tx.Rollback(ctx)
-			return fmt.Errorf("record %s: %w", name, err)
-		}
-		if err := tx.Commit(ctx); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func Close(gdb *gorm.DB) error {
+	if gdb == nil {
+		return nil
+	}
+	sqlDB, err := gdb.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }

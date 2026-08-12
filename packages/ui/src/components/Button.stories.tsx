@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
 import { Button } from "./Button";
 
+/**
+ * @deprecated Prefer UI/CtaButton — Button is a back-compat alias.
+ */
 const meta = {
   title: "UI/Button",
   component: Button,
@@ -11,7 +14,7 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["primary", "secondary", "ghost"],
+      options: ["primary", "secondary", "ghost", "cta"],
     },
     children: { control: "text" },
   },

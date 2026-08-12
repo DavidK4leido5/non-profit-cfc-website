@@ -68,7 +68,12 @@ export type SiteFooterContent = {
   copyright: string;
 };
 
-export type SiteActivityIcon = "camp" | "retreat" | "calendar" | "fellowship" | "service";
+export type SiteActivityIcon =
+  | "camp"
+  | "retreat"
+  | "calendar"
+  | "fellowship"
+  | "service";
 
 /** Upcoming activity tile — grid placement via className (admin-editable later). */
 export type SiteActivity = {
@@ -120,7 +125,7 @@ export type SiteBoardContent = {
 
 export const siteContent = {
   brand: {
-    name: "Christian Fellowship Church",
+    name: "Christian Fellowship\nChurch",
     href: "/",
     logo: {
       /** Place file in apps/web/src/assets/images/ (Vite bundles it reliably in dev) */
@@ -143,7 +148,6 @@ export const siteContent = {
   },
 
   hero: {
-    eyebrow: "Welcome home",
     headline: "A place to belong, believe, and become",
     subcopy:
       "Join us for worship, community, and growth. Everyone is welcome — come as you are and discover faith lived out together.",
@@ -151,25 +155,39 @@ export const siteContent = {
       label: "Plan your visit",
       href: "#visit",
     } satisfies SiteCta,
-    secondaryCta: {
-      label: "Watch online",
-      href: "#stream",
-    } satisfies SiteCta,
     /**
      * Full-screen hero background — save your photo as apps/web/public/images/hero-bg.jpg
      * (1920×1080 or wider recommended), then set src to "/images/hero-bg.jpg".
      */
     background: {
-      src: "https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=1920&q=80",
-      alt: "Congregation worshipping together in a bright sanctuary",
+      /** https://unsplash.com/photos/man-praying-OptEsFuZwoQ — mirrored so subject sits right */
+      src: "https://images.unsplash.com/photo-1543525238-54e3d131f7ca?w=1920&q=80",
+      alt: "Man praying with hands clasped",
+      mirror: true,
     },
-    badge: "Sundays 10 AM",
-    stats: [
-      { value: "1985", label: "Serving our city" },
-      { value: "3", label: "Weekly services" },
-      { value: "120+", label: "Volunteers" },
-      { value: "Open", label: "All are welcome" },
-    ] satisfies SitePreviewStat[],
+    featureStrip: {
+      quote: {
+        text: "We want to be a family where people can connect and benefit from friendships in Christ.",
+        portrait: {
+          src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80",
+          alt: "Church member holding a Bible",
+        },
+      },
+      media: {
+        src: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1200&q=80",
+        alt: "Friends studying Scripture together",
+        href: "#stream",
+        label: "Watch a message",
+      },
+      service: {
+        title: "Sunday Worship Service",
+        detail: "Every Sunday · 10:00–11:30 AM",
+        cta: {
+          label: "Learn more",
+          href: "#visit",
+        },
+      },
+    },
   },
 
   invitationMarquee: {
@@ -191,8 +209,7 @@ export const siteContent = {
     title: "How we live the vision",
     scripture: {
       reference: "Matthew 28:19",
-      text:
-        "Go therefore and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit.",
+      text: "Go therefore and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit.",
     },
     intro:
       "The G12 Vision is a God-given strategy for fulfilling the Great Commission — a clear path to win people to Christ, strengthen new believers, train disciples, and send them to reach others. Following Jesus, who called twelve to be with Him and sent them out, we believe every believer can grow into a mature disciple who multiplies faith at home, at work, and in ministry.",
@@ -358,8 +375,8 @@ export const siteContent = {
       subtitle:
         "Big updates from each ministry — camps, serve days, rehearsals, and volunteer calls. Tap a board below or scroll to yours.",
       background: {
-        src: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1920&q=80",
-        alt: "Smiling team members gathered together",
+        src: "https://www.northfieldumc.org/sites/northfieldumc.org/files/2026-01/children_youth_family_ministries_collage.jpg",
+        alt: "Photo collage of children, youth, and family ministry activities",
       },
     },
     ministries: [
@@ -414,7 +431,8 @@ export const siteContent = {
       {
         slug: "worship",
         title: "Worship & Music",
-        tagline: "Rehearsals, set lists, and serving opportunities on the worship team.",
+        tagline:
+          "Rehearsals, set lists, and serving opportunities on the worship team.",
         imageSrc:
           "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1920&q=80",
         imageAlt: "Congregation smiling and worshipping together",
@@ -462,7 +480,8 @@ export const siteContent = {
       {
         slug: "outreach",
         title: "Community Outreach",
-        tagline: "Local serve days, care visits, and ways to love our neighbors.",
+        tagline:
+          "Local serve days, care visits, and ways to love our neighbors.",
         imageSrc:
           "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=1920&q=80",
         imageAlt: "Smiling graduates celebrating together outdoors",
@@ -512,7 +531,8 @@ export const siteContent = {
 
   visitInvite: {
     title: "We'd love to see you this weekend!",
-    subtitle: "Let us know you're coming — we'll save you a seat and help you feel at home.",
+    subtitle:
+      "Let us know you're coming — we'll save you a seat and help you feel at home.",
     cta: {
       label: "Plan your visit",
       href: "#visit",

@@ -5,8 +5,10 @@
   "type": "module",
   "exports": {
     "./button": "./src/components/Button.tsx",
+    "./cta-button": "./src/components/CtaButton.tsx",
     "./navbar": "./src/components/Navbar.tsx",
     "./hero": "./src/components/Hero.tsx",
+    "./hero-feature-strip": "./src/components/HeroFeatureStrip.tsx",
     "./hero-preview-card": "./src/components/HeroPreviewCard.tsx",
     "./trust-strip": "./src/components/TrustStrip.tsx",
     "./ministry-card": "./src/components/MinistryCard.tsx",

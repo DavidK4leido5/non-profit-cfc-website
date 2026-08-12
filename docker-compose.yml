@@ -1,8 +1,8 @@
 name: church-page
 
 # Dev:  docker compose up --watch
-# API: image rebuild on Go changes. Web: bind mount + Vite.
-# Root `.env` is loaded for both services.
+# API: image rebuild on Go changes. Web: bind mount + Vite. Auth: Node Better Auth.
+# Root `.env` is loaded for services.
 
 services:
   web:
@@ -22,17 +22,22 @@ services:
       WATCHPACK_POLLING: "true"
       TURBO_TELEMETRY_DISABLED: "1"
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+      VITE_AUTH_BASE_URL: ${VITE_AUTH_BASE_URL:-/api/auth}
       VITE_APP_NAME: ${VITE_APP_NAME:-Church}
       VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME:-}
       VITE_ADMIN_API_TOKEN: ${VITE_ADMIN_API_TOKEN:-}
       VITE_API_PROXY: http://api:8080
+      VITE_AUTH_PROXY: http://auth:3001
     volumes:
       - .:/app
       - church_node_modules:/app/node_modules
       - /app/apps/web/node_modules
       - /app/packages/ui/node_modules
+      - /app/apps/auth/node_modules
     depends_on:
       api:
+        condition: service_healthy
+      auth:
         condition: service_healthy
     command: ["pnpm", "exec", "turbo", "run", "dev", "--filter=@church/web", "--filter=@church/ui"]
     develop:
@@ -45,6 +50,43 @@ services:
           target: /app/packages/ui/package.json
         - action: rebuild
           path: ./apps/web/Dockerfile
+
+  auth:
+    container_name: auth
+    build:
+      context: .
+      dockerfile: ./apps/auth/Dockerfile
+      target: dev
+    ports:
+      - "${AUTH_PORT:-3001}:3001"
+    env_file:
+      - .env
+    environment:
+      AUTH_PORT: "3001"
+      DATABASE_URL: ${DATABASE_URL:-}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-}
+      SUPER_ADMIN_NAME: ${SUPER_ADMIN_NAME:-Super Admin}
+    volumes:
+      - .:/app
+      - church_node_modules:/app/node_modules
+      - /app/apps/auth/node_modules
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./apps/auth/package.json
+          target: /app/apps/auth/package.json
+        - action: rebuild
+          path: ./apps/auth/Dockerfile
 
   api:
     container_name: api

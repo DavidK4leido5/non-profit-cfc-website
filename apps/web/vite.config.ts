@@ -50,6 +50,10 @@ export default defineConfig({
     },
     ...dockerDevWatch(),
     proxy: {
+      "/api/auth": {
+        target: process.env.VITE_AUTH_PROXY ?? "http://localhost:3001",
+        changeOrigin: true,
+      },
       "/api/v1": {
         target: process.env.VITE_API_PROXY ?? "http://localhost:8080",
         changeOrigin: true,

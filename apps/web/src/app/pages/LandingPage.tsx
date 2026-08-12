@@ -26,14 +26,11 @@ export function LandingPage() {
   return (
     <>
       <Hero
-        eyebrow={hero.eyebrow}
         headline={hero.headline}
         subcopy={hero.subcopy}
         primaryCta={hero.primaryCta}
-        secondaryCta={hero.secondaryCta}
         background={hero.background}
-        badge={hero.badge}
-        stats={[...hero.stats]}
+        featureStrip={hero.featureStrip}
       />
       <InvitationMarquee
         phrases={invitationMarquee.phrases}

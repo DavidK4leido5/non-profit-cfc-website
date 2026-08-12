@@ -10,8 +10,8 @@ import (
 	"github.com/church-page/api/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"gorm.io/gorm"
 
 	_ "github.com/church-page/api/docs"
 )
@@ -19,7 +19,7 @@ import (
 type Deps struct {
 	Config     config.Config
 	Logger     *slog.Logger
-	Pool       *pgxpool.Pool
+	DB         *gorm.DB
 	Cloudinary *cloudinary.Client
 }
 
@@ -32,7 +32,7 @@ func NewRouter(deps Deps) http.Handler {
 	r.Use(middleware.Logger(deps.Logger))
 	r.Use(middleware.CORS(deps.Config.CORSOrigins))
 
-	health := handler.NewHealthHandler(deps.Config, deps.Pool)
+	health := handler.NewHealthHandler(deps.Config, deps.DB)
 	auth := handler.NewAuthHandler()
 
 	r.Get("/health", health.Liveness)
@@ -48,11 +48,11 @@ func NewRouter(deps Deps) http.Handler {
 		api.Post("/auth/login", auth.Login)
 		api.Post("/auth/logout", auth.Logout)
 
-		if deps.Pool != nil {
-			articles := handler.NewArticlesHandler(deps.Pool)
-			boards := handler.NewBoardsHandler(deps.Pool)
-			activities := handler.NewActivitiesHandler(deps.Pool)
-			assets := handler.NewAssetsHandler(deps.Pool, deps.Cloudinary)
+		if deps.DB != nil {
+			articles := handler.NewArticlesHandler(deps.DB)
+			boards := handler.NewBoardsHandler(deps.DB)
+			activities := handler.NewActivitiesHandler(deps.DB)
+			assets := handler.NewAssetsHandler(deps.DB, deps.Cloudinary)
 
 			api.Get("/articles", articles.ListPublic)
 			api.Get("/articles/{slug}", articles.GetPublic)

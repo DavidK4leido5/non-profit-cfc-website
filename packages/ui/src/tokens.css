@@ -2,7 +2,7 @@
  * Design tokens — see COLOR-PALETTE.md for rationale and usage.
  */
 :root {
-  /* Brand — Royal Blue */
+  /* Brand scale — royal blue (kept for gradual migration; prefer primary/accent) */
   --color-brand-50: #eef2fc;
   --color-brand-100: #d9e4fa;
   --color-brand-200: #b3c9f5;
@@ -14,6 +14,29 @@
   --color-brand-800: #1f326c;
   --color-brand-900: #15224a;
   --color-brand-950: #0c1428;
+
+  /*
+   * Semantic roles
+   * primary — deep navy (footer, dark sections) — THE primary brand color
+   * accent  — royal blue (CTAs, interactive fills)
+   * gold    — warm highlight (optional, sparingly)
+   */
+  --color-primary: #0c1428;
+  --color-primary-soft: #15224a;
+  --color-primary-muted: #1f326c;
+
+  --color-accent-50: #eef2fc;
+  --color-accent-100: #d9e4fa;
+  --color-accent-200: #b3c9f5;
+  --color-accent-300: #8daef0;
+  --color-accent-400: #5c85e8;
+  --color-accent-500: #4169e1;
+  --color-accent-600: #3454b4;
+  --color-accent-700: #2a4390;
+
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f59e0b;
+  --color-gold-600: #d97706;
 
   /* Ink */
   --color-ink: #0f172a;
@@ -29,11 +52,6 @@
   --color-surface-hero: #eef2fc;
   --color-surface-hero-end: #f8fafc;
   --color-surface-elevated: #ffffff;
-
-  /* Accent — gold */
-  --color-accent-400: #fbbf24;
-  --color-accent-500: #f59e0b;
-  --color-accent-600: #d97706;
 
   /* Semantic */
   --color-success: #059669;
@@ -76,12 +94,13 @@
   --image-grade-highlight-opacity: 0.22;
 
   /*
-   * Typography — mapped from Normal is Boring (Editorial New / Juana / Izmir).
+   * Typography — geometric sans (Outfit) across the site.
    * See docs/TYPOGRAPHY.md. Google Fonts stand-ins (commercial fonts not licensed).
    */
-  --font-display: "Cormorant Garamond", "Times New Roman", Georgia, serif;
-  --font-body: "Lora", "Palatino Linotype", Georgia, serif;
-  --font-ui: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --font-ui: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --font-hero: "Outfit", "Segoe UI", system-ui, sans-serif;
 }
 
 html {
@@ -118,6 +137,12 @@ textarea {
   font-family: var(--font-ui);
 }
 
+.font-hero {
+  font-family: var(--font-hero);
+  font-kerning: none;
+  -webkit-font-smoothing: antialiased;
+}
+
 /* Back-compat aliases used on the board page */
 .board-font-display {
   font-family: var(--font-display);
@@ -148,6 +173,23 @@ textarea {
   --color-brand-900: var(--color-brand-900);
   --color-brand-950: var(--color-brand-950);
 
+  --color-primary: var(--color-primary);
+  --color-primary-soft: var(--color-primary-soft);
+  --color-primary-muted: var(--color-primary-muted);
+
+  --color-accent-50: var(--color-accent-50);
+  --color-accent-100: var(--color-accent-100);
+  --color-accent-200: var(--color-accent-200);
+  --color-accent-300: var(--color-accent-300);
+  --color-accent-400: var(--color-accent-400);
+  --color-accent-500: var(--color-accent-500);
+  --color-accent-600: var(--color-accent-600);
+  --color-accent-700: var(--color-accent-700);
+
+  --color-gold-400: var(--color-gold-400);
+  --color-gold-500: var(--color-gold-500);
+  --color-gold-600: var(--color-gold-600);
+
   --color-ink: var(--color-ink);
   --color-ink-heading: var(--color-ink-heading);
   --color-ink-muted: var(--color-ink-muted);
@@ -159,10 +201,6 @@ textarea {
   --color-surface-muted: var(--color-surface-muted);
   --color-surface-hero: var(--color-surface-hero);
   --color-surface-elevated: var(--color-surface-elevated);
-
-  --color-accent-400: var(--color-accent-400);
-  --color-accent-500: var(--color-accent-500);
-  --color-accent-600: var(--color-accent-600);
 
   --color-success: var(--color-success);
   --color-success-subtle: var(--color-success-subtle);
@@ -318,6 +356,7 @@ textarea {
 /** Board page — palettes, layout rhythm (type tokens live on :root) */
 .board-page {
   font-family: var(--font-body);
+  background: var(--color-primary);
 }
 
 /** Space between ministry boards so each group reads as its own bulletin */
@@ -370,11 +409,12 @@ html:has(.board-page) {
 }
 
 .board-hero-scrim {
+  /* Prefer Tailwind utilities on BoardHero; keep class for Storybook / legacy */
   background: linear-gradient(
     180deg,
-    rgb(0 0 0 / 0.28) 0%,
-    rgb(0 0 0 / 0.18) 42%,
-    rgb(0 0 0 / 0.72) 100%
+    rgb(12 20 40 / 0.45) 0%,
+    rgb(12 20 40 / 0.25) 45%,
+    #0c1428 100%
   );
 }
 
@@ -393,6 +433,7 @@ html:has(.board-page) {
 .bulletin-hero-link-compact {
   display: inline-flex;
   align-items: center;
+  min-height: 2.75rem;
   border-radius: 9999px;
   padding: 0.625rem 1.125rem;
   font-family: var(--font-ui);
@@ -403,6 +444,13 @@ html:has(.board-page) {
     background-color 0.2s ease,
     color 0.2s ease,
     box-shadow 0.2s ease;
+}
+
+.bulletin-hero-link-compact:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-primary),
+    0 0 0 4px var(--color-accent-400);
 }
 
 .bulletin-hero-link-tone-0 {
@@ -416,13 +464,13 @@ html:has(.board-page) {
 }
 
 .bulletin-hero-link-tone-1 {
-  background: var(--color-accent-500);
-  color: var(--color-brand-950);
+  background: var(--color-gold-500);
+  color: var(--color-primary);
   box-shadow: 0 4px 14px rgb(245 158 11 / 0.35);
 }
 
 .bulletin-hero-link-tone-1:hover {
-  background: #fbbf24;
+  background: var(--color-gold-400);
 }
 
 .bulletin-hero-link-tone-2 {
@@ -677,11 +725,11 @@ html:has(.board-page) {
 .bulletin-poster-palette-gold {
   background: linear-gradient(
     125deg,
-    var(--color-accent-500) 0%,
+    var(--color-gold-500) 0%,
     #fb923c 45%,
     var(--color-brand-800) 100%
   );
-  color: var(--color-brand-950);
+  color: var(--color-primary);
 }
 
 .bulletin-poster-palette-gold .bulletin-poster-body {
@@ -777,8 +825,8 @@ html:has(.board-page) {
 }
 
 .bulletin-poster-tag-accent {
-  background: var(--color-accent-400);
-  color: var(--color-brand-950);
+  background: var(--color-gold-400);
+  color: var(--color-primary);
 }
 
 .bulletin-poster-date {
@@ -888,7 +936,7 @@ html:has(.board-page) {
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 9999px;
-  background: var(--color-accent-400);
+  background: var(--color-gold-400);
   flex-shrink: 0;
 }
 

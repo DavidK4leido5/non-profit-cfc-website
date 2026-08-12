@@ -14,6 +14,11 @@ import { HomePage } from "./routes/index";
 import { LoginPage } from "./routes/auth/login";
 import { RegisterPage } from "./routes/auth/register";
 import { ResourcesPage } from "./routes/resources/index";
+import { DashboardHomePage } from "./routes/dashboard/index";
+import { DashboardAccountsPage } from "./routes/dashboard/accounts";
+import { DashboardUsersPage } from "./routes/dashboard/users";
+import { DashboardBranchesPage } from "./routes/dashboard/branches";
+import { DashboardBranchSetupPage } from "./routes/dashboard/branch-setup";
 
 export function App() {
   return (
@@ -24,6 +29,12 @@ export function App() {
         <Route path="/resources" component={ResourcesPage} />
         <Route path="/auth/login" component={LoginPage} />
         <Route path="/auth/register" component={RegisterPage} />
+
+        <Route path="/dashboard" component={DashboardHomePage} />
+        <Route path="/dashboard/accounts" component={DashboardAccountsPage} />
+        <Route path="/dashboard/users" component={DashboardUsersPage} />
+        <Route path="/dashboard/branches" component={DashboardBranchesPage} />
+        <Route path="/dashboard/branch/setup" component={DashboardBranchSetupPage} />
 
         <Route path="/admin" component={AdminPage} />
         <Route path="/admin/assets" component={AdminAssetsPage} />

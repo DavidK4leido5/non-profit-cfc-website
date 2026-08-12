@@ -16,7 +16,7 @@ import (
 	"github.com/church-page/api/internal/config"
 	"github.com/church-page/api/internal/db"
 	"github.com/church-page/api/internal/server"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -31,9 +31,9 @@ func main() {
 	}))
 
 	ctx := context.Background()
-	var pool *pgxpool.Pool
+	var gdb *gorm.DB
 	if cfg.DatabaseURL != "" {
-		pool, err = db.Connect(ctx, cfg.DatabaseURL)
+		gdb, err = db.Open(cfg.DatabaseURL)
 		if err != nil {
 			logger.Error("database connect failed", "error", err)
 			os.Exit(1)
@@ -45,11 +45,11 @@ func main() {
 				migrationsDir = abs
 			}
 		}
-		if err := db.Migrate(ctx, pool, migrationsDir); err != nil {
+		if err := db.Migrate(ctx, gdb, migrationsDir); err != nil {
 			logger.Error("migrate failed", "error", err)
 			os.Exit(1)
 		}
-		logger.Info("database ready", "migrations", migrationsDir)
+		logger.Info("database ready", "orm", "gorm", "migrations", migrationsDir)
 	} else {
 		logger.Warn("DATABASE_URL not set — content and asset APIs disabled")
 	}
@@ -74,7 +74,7 @@ func main() {
 	httpHandler := server.NewRouter(server.Deps{
 		Config:     cfg,
 		Logger:     logger,
-		Pool:       pool,
+		DB:         gdb,
 		Cloudinary: cld,
 	})
 
@@ -106,7 +106,7 @@ func main() {
 		logger.Error("shutdown failed", "error", err)
 		os.Exit(1)
 	}
-	if pool != nil {
-		pool.Close()
+	if err := db.Close(gdb); err != nil {
+		logger.Error("database close failed", "error", err)
 	}
 }

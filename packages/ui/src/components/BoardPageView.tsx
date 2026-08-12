@@ -1,6 +1,9 @@
 import { For } from "solid-js";
 import { BoardHero, type BoardHeroLink } from "./BoardHero";
-import { MinistryBulletinSection, type BulletinPost } from "./MinistryBulletinSection";
+import {
+  MinistryBulletinSection,
+  type BulletinPost,
+} from "./MinistryBulletinSection";
 
 export type BoardMinistry = {
   slug: string;
@@ -31,7 +34,7 @@ export function BoardPageView(props: BoardPageViewProps) {
     }));
 
   return (
-    <div class={`board-page ${props.class ?? "bg-surface-subtle"}`}>
+    <div class={`board-page bg-primary text-on-hero ${props.class ?? ""}`}>
       <BoardHero
         eyebrow={props.hero.eyebrow}
         title={props.hero.title}

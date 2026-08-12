@@ -1,0 +1,48 @@
+---
+description: WCAG 2.2 AA UI conventions for church site (contrast, focus, targets, semantics)
+globs: "{apps/web,packages/ui}/**/*.{tsx,ts,css,html}"
+alwaysApply: false
+---
+
+# WCAG 2.2 UI (AA)
+
+Follow WCAG 2.2 Level AA for all UI in `apps/web` and `packages/ui`. Prefer native HTML before ARIA.
+
+## Color roles
+
+- **Primary** (`bg-primary` / `#0C1428`): dark navy — footer, board, dark sections
+- **Accent** (`accent-600`+): royal blue — CTA fills (prefer `accent-600` over `accent-500` for white text)
+- On primary: use `text-on-hero` / `text-on-hero-muted` / `text-on-hero-subtle` — never `text-ink`
+- Photo overlays: keep bottom/primary scrims strong enough that overlay text stays ≥ 4.5:1
+
+## Contrast (1.4.3 / 1.4.11)
+
+- Normal text ≥ 4.5:1; large text / UI chrome ≥ 3:1
+- Do not use low-opacity white on bright heroes (`text-white/75` fails) — use `text-white` + optional top scrim
+- Tiny labels on accent: use `accent-600` and ≥ `text-xs`
+
+## Focus & keyboard (2.4.7 / 2.4.11 / 2.1.1)
+
+- Every interactive control needs a visible `:focus-visible` ring
+- On dark/primary: `ring-offset-primary`; on light: `ring-offset-surface`
+- Do not clip focus with `overflow-hidden` on CTA wrappers — confine overflow to media layers
+- In-page `#hash` links must have matching `id` targets
+
+## Target size (2.5.8)
+
+- Interactive hit areas ≥ 24×24 CSS px (prefer `min-h-11` / `min-w-11` for buttons)
+- Avoid `py-0 px-0` on link-style CTAs without `min-h-*`
+
+## Structure (2.4.1 / 4.1.2)
+
+- Keep skip link → `#main-content` in public layout
+- Landmarks: `header` / `nav` / `main` / `footer`; contact blocks as `<address>`
+- Decorative images: empty alt or `aria-hidden` on wrapper; meaningful images need descriptive alt
+
+## Checklist before shipping UI
+
+- [ ] Contrast OK on primary and accent
+- [ ] Focus ring visible and not clipped
+- [ ] Targets ≥ 24px
+- [ ] Keyboard reaches all actions; hash links resolve
+- [ ] Semantics: button vs link; labeled icon-only controls

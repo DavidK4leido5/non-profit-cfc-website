@@ -2,22 +2,22 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/church-page/api/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
 )
 
 type ArticlesHandler struct {
-	pool *pgxpool.Pool
+	db *gorm.DB
 }
 
-func NewArticlesHandler(pool *pgxpool.Pool) *ArticlesHandler {
-	return &ArticlesHandler{pool: pool}
+func NewArticlesHandler(db *gorm.DB) *ArticlesHandler {
+	return &ArticlesHandler{db: db}
 }
 
 type articleInput struct {
@@ -40,29 +40,17 @@ func (h *ArticlesHandler) ListAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ArticlesHandler) list(w http.ResponseWriter, r *http.Request, publishedOnly bool) {
-	query := `
-		SELECT id, slug, title, excerpt, cover_asset_id, cover_url, body_html, body_gjs, status, published_at, created_at, updated_at
-		FROM articles`
+	q := h.db.WithContext(r.Context()).Model(&models.Article{})
 	if publishedOnly {
-		query += ` WHERE status = 'published'`
+		q = q.Where("status = ?", "published")
 	}
-	query += ` ORDER BY COALESCE(published_at, created_at) DESC`
-
-	rows, err := h.pool.Query(r.Context(), query)
-	if err != nil {
+	var items []models.Article
+	if err := q.Order("COALESCE(published_at, created_at) DESC").Find(&items).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to list articles")
 		return
 	}
-	defer rows.Close()
-
-	items := make([]models.Article, 0)
-	for rows.Next() {
-		item, err := scanArticle(rows)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "db_error", "Failed to scan article")
-			return
-		}
-		items = append(items, item)
+	if items == nil {
+		items = []models.Article{}
 	}
 	writeData(w, http.StatusOK, items)
 }
@@ -70,15 +58,11 @@ func (h *ArticlesHandler) list(w http.ResponseWriter, r *http.Request, published
 func (h *ArticlesHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	var item models.Article
-	err := h.pool.QueryRow(r.Context(), `
-		SELECT id, slug, title, excerpt, cover_asset_id, cover_url, body_html, body_gjs, status, published_at, created_at, updated_at
-		FROM articles WHERE slug = $1 AND status = 'published'
-	`, slug).Scan(
-		&item.ID, &item.Slug, &item.Title, &item.Excerpt, &item.CoverAssetID, &item.CoverURL,
-		&item.BodyHTML, &item.BodyGJS, &item.Status, &item.PublishedAt, &item.CreatedAt, &item.UpdatedAt,
-	)
+	err := h.db.WithContext(r.Context()).
+		Where("slug = ? AND status = ?", slug, "published").
+		First(&item).Error
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Article not found")
 			return
 		}
@@ -96,7 +80,7 @@ func (h *ArticlesHandler) GetAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 	item, err := h.getByID(r, id)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Article not found")
 			return
 		}
@@ -129,16 +113,19 @@ func (h *ArticlesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		publishedAt = &now
 	}
 
-	var item models.Article
-	err := h.pool.QueryRow(r.Context(), `
-		INSERT INTO articles (slug, title, excerpt, cover_asset_id, cover_url, body_html, body_gjs, status, published_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-		RETURNING id, slug, title, excerpt, cover_asset_id, cover_url, body_html, body_gjs, status, published_at, created_at, updated_at
-	`, in.Slug, in.Title, in.Excerpt, in.CoverAssetID, in.CoverURL, in.BodyHTML, nullableJSON(in.BodyGJS), in.Status, publishedAt).Scan(
-		&item.ID, &item.Slug, &item.Title, &item.Excerpt, &item.CoverAssetID, &item.CoverURL,
-		&item.BodyHTML, &item.BodyGJS, &item.Status, &item.PublishedAt, &item.CreatedAt, &item.UpdatedAt,
-	)
-	if err != nil {
+	item := models.Article{
+		ID:           uuid.New(),
+		Slug:         in.Slug,
+		Title:        in.Title,
+		Excerpt:      in.Excerpt,
+		CoverAssetID: in.CoverAssetID,
+		CoverURL:     in.CoverURL,
+		BodyHTML:     in.BodyHTML,
+		BodyGJS:      cleanJSON(in.BodyGJS),
+		Status:       in.Status,
+		PublishedAt:  publishedAt,
+	}
+	if err := h.db.WithContext(r.Context()).Create(&item).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to create article")
 		return
 	}
@@ -170,7 +157,7 @@ func (h *ArticlesHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	existing, err := h.getByID(r, id)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Article not found")
 			return
 		}
@@ -187,21 +174,21 @@ func (h *ArticlesHandler) Update(w http.ResponseWriter, r *http.Request) {
 		publishedAt = nil
 	}
 
-	var item models.Article
-	err = h.pool.QueryRow(r.Context(), `
-		UPDATE articles
-		SET slug=$2, title=$3, excerpt=$4, cover_asset_id=$5, cover_url=$6, body_html=$7, body_gjs=$8, status=$9, published_at=$10, updated_at=now()
-		WHERE id=$1
-		RETURNING id, slug, title, excerpt, cover_asset_id, cover_url, body_html, body_gjs, status, published_at, created_at, updated_at
-	`, id, in.Slug, in.Title, in.Excerpt, in.CoverAssetID, in.CoverURL, in.BodyHTML, nullableJSON(in.BodyGJS), in.Status, publishedAt).Scan(
-		&item.ID, &item.Slug, &item.Title, &item.Excerpt, &item.CoverAssetID, &item.CoverURL,
-		&item.BodyHTML, &item.BodyGJS, &item.Status, &item.PublishedAt, &item.CreatedAt, &item.UpdatedAt,
-	)
-	if err != nil {
+	existing.Slug = in.Slug
+	existing.Title = in.Title
+	existing.Excerpt = in.Excerpt
+	existing.CoverAssetID = in.CoverAssetID
+	existing.CoverURL = in.CoverURL
+	existing.BodyHTML = in.BodyHTML
+	existing.BodyGJS = cleanJSON(in.BodyGJS)
+	existing.Status = in.Status
+	existing.PublishedAt = publishedAt
+
+	if err := h.db.WithContext(r.Context()).Save(&existing).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to update article")
 		return
 	}
-	writeData(w, http.StatusOK, item)
+	writeData(w, http.StatusOK, existing)
 }
 
 func (h *ArticlesHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -210,12 +197,12 @@ func (h *ArticlesHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_id", "Invalid article id")
 		return
 	}
-	tag, err := h.pool.Exec(r.Context(), `DELETE FROM articles WHERE id = $1`, id)
-	if err != nil {
+	res := h.db.WithContext(r.Context()).Delete(&models.Article{}, "id = ?", id)
+	if res.Error != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to delete article")
 		return
 	}
-	if tag.RowsAffected() == 0 {
+	if res.RowsAffected == 0 {
 		writeError(w, http.StatusNotFound, "not_found", "Article not found")
 		return
 	}
@@ -224,30 +211,11 @@ func (h *ArticlesHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *ArticlesHandler) getByID(r *http.Request, id uuid.UUID) (models.Article, error) {
 	var item models.Article
-	err := h.pool.QueryRow(r.Context(), `
-		SELECT id, slug, title, excerpt, cover_asset_id, cover_url, body_html, body_gjs, status, published_at, created_at, updated_at
-		FROM articles WHERE id = $1
-	`, id).Scan(
-		&item.ID, &item.Slug, &item.Title, &item.Excerpt, &item.CoverAssetID, &item.CoverURL,
-		&item.BodyHTML, &item.BodyGJS, &item.Status, &item.PublishedAt, &item.CreatedAt, &item.UpdatedAt,
-	)
+	err := h.db.WithContext(r.Context()).First(&item, "id = ?", id).Error
 	return item, err
 }
 
-type scannable interface {
-	Scan(dest ...any) error
-}
-
-func scanArticle(row scannable) (models.Article, error) {
-	var item models.Article
-	err := row.Scan(
-		&item.ID, &item.Slug, &item.Title, &item.Excerpt, &item.CoverAssetID, &item.CoverURL,
-		&item.BodyHTML, &item.BodyGJS, &item.Status, &item.PublishedAt, &item.CreatedAt, &item.UpdatedAt,
-	)
-	return item, err
-}
-
-func nullableJSON(raw json.RawMessage) any {
+func cleanJSON(raw json.RawMessage) json.RawMessage {
 	if len(raw) == 0 || string(raw) == "null" {
 		return nil
 	}

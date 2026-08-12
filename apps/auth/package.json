@@ -1,0 +1,30 @@
+{
+  "name": "@church/auth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "seed": "tsx src/seed.ts",
+    "auth:migrate": "tsx src/migrate.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"lint: not configured yet\"",
+    "test": "echo \"test: not configured yet\"",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.1",
+    "better-auth": "^1.2.8",
+    "dotenv": "^16.5.0",
+    "hono": "^4.7.8",
+    "pg": "^8.14.1"
+  },
+  "devDependencies": {
+    "@church/typescript-config": "workspace:*",
+    "@types/node": "^22.14.1",
+    "@types/pg": "^8.11.13",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  }
+}

@@ -20,23 +20,35 @@ export const mockSiteContent = {
     cta: { href: "/auth/login", label: "Sign in" },
   },
   hero: {
-    eyebrow: "Welcome home",
     headline: "A place to belong, believe, and become",
     subcopy:
       "Join us for worship, community, and growth. Everyone is welcome — come as you are and discover faith lived out together.",
     primaryCta: { label: "Plan your visit", href: "#visit" },
-    secondaryCta: { label: "Watch online", href: "#stream" },
     background: {
-      src: "https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=1920&q=80",
-      alt: "Congregation worshipping together in a bright sanctuary",
+      src: "https://images.unsplash.com/photo-1543525238-54e3d131f7ca?w=1920&q=80",
+      alt: "Man praying with hands clasped",
+      mirror: true,
     },
-    badge: "Sundays 10 AM",
-    stats: [
-      { value: "1985", label: "Serving our city" },
-      { value: "3", label: "Weekly services" },
-      { value: "120+", label: "Volunteers" },
-      { value: "Open", label: "All are welcome" },
-    ],
+    featureStrip: {
+      quote: {
+        text: "We want to be a family where people can connect and benefit from friendships in Christ.",
+        portrait: {
+          src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80",
+          alt: "Church member holding a Bible",
+        },
+      },
+      media: {
+        src: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1200&q=80",
+        alt: "Friends studying Scripture together",
+        href: "#stream",
+        label: "Watch a message",
+      },
+      service: {
+        title: "Sunday Worship Service",
+        detail: "Every Sunday · 10:00–11:30 AM",
+        cta: { label: "Learn more", href: "#visit" },
+      },
+    },
     preview: {
       imageSrc:
         "https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800&q=80",

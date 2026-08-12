@@ -37,7 +37,7 @@ function ContactIcon(props: { children: JSX.Element }) {
 
 export function SiteFooter(props: SiteFooterProps) {
   return (
-    <footer class={`border-t border-border bg-brand-950 text-on-hero-subtle ${props.class ?? ""}`}>
+    <footer class={`border-t border-white/10 bg-primary text-on-hero-subtle ${props.class ?? ""}`}>
       <div class="mx-auto max-w-page px-4 py-14 sm:py-16 lg:px-10">
         <div class="flex flex-col items-center gap-10 sm:gap-12">
           <div class="flex w-full max-w-3xl flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-center sm:gap-8 lg:gap-12">
@@ -68,8 +68,8 @@ export function SiteFooter(props: SiteFooterProps) {
             </Show>
           </div>
 
-          <div
-            class="border-on-hero/10 w-full max-w-3xl border-t pt-10"
+          <address
+            class="border-on-hero/10 w-full max-w-3xl border-t pt-10 not-italic"
             aria-label="Contact information"
           >
             <div class="grid gap-8 text-center sm:grid-cols-3 sm:gap-6">
@@ -84,7 +84,7 @@ export function SiteFooter(props: SiteFooterProps) {
                     </p>
                     <a
                       href={`mailto:${email()}`}
-                      class="text-on-hero hover:text-brand-200 text-base transition-colors sm:text-lg"
+                      class="text-on-hero hover:text-accent-200 focus-visible:ring-accent-400 focus-visible:ring-offset-primary rounded-sm text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:text-lg"
                     >
                       {email()}
                     </a>
@@ -102,7 +102,7 @@ export function SiteFooter(props: SiteFooterProps) {
                     </p>
                     <a
                       href={`tel:${phone().replace(/\s/g, "")}`}
-                      class="text-on-hero hover:text-brand-200 text-base transition-colors sm:text-lg"
+                      class="text-on-hero hover:text-accent-200 focus-visible:ring-accent-400 focus-visible:ring-offset-primary rounded-sm text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:text-lg"
                     >
                       {phone()}
                     </a>
@@ -123,7 +123,7 @@ export function SiteFooter(props: SiteFooterProps) {
                 )}
               </Show>
             </div>
-          </div>
+          </address>
 
           <Show when={props.social && props.social.length > 0}>
             <ul class="flex flex-wrap items-center justify-center gap-3">
@@ -132,7 +132,7 @@ export function SiteFooter(props: SiteFooterProps) {
                   <li>
                     <a
                       href={link.href}
-                      class="text-on-hero-muted hover:text-on-hero hover:bg-brand-900/70 inline-flex h-12 w-12 items-center justify-center rounded-full transition-colors"
+                      class="text-on-hero-muted hover:text-on-hero hover:bg-brand-900/70 focus-visible:ring-accent-400 focus-visible:ring-offset-primary inline-flex h-12 w-12 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={link.label}

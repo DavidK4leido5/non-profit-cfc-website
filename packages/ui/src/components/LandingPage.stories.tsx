@@ -31,14 +31,11 @@ function LandingPagePreview() {
         tone="light"
       />
       <Hero
-        eyebrow={hero.eyebrow}
         headline={hero.headline}
         subcopy={hero.subcopy}
         primaryCta={hero.primaryCta}
-        secondaryCta={hero.secondaryCta}
         background={hero.background}
-        badge={hero.badge}
-        stats={[...hero.stats]}
+        featureStrip={hero.featureStrip}
       />
       <G12VisionSection
         headerTitle={g12Vision.headerTitle}

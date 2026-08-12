@@ -5,6 +5,9 @@
   "description": "Church website monorepo",
   "scripts": {
     "dev": "turbo run dev --filter=!@church/api",
+    "dev:auth": "turbo run dev --filter=@church/auth",
+    "auth:migrate": "pnpm --filter @church/auth auth:migrate",
+    "auth:seed": "pnpm --filter @church/auth seed",
     "dev:api": "docker compose up api --build --remove-orphans",
     "dev:api:watch": "docker compose up api --build --watch --remove-orphans",
     "dev:docker": "docker compose up --watch --remove-orphans",

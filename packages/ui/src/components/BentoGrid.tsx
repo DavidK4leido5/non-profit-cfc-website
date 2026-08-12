@@ -62,7 +62,7 @@ export function BentoCard(props: BentoCardProps) {
               <ActivityIcon id={local.icon} class="text-white h-8 w-8 sm:h-9 sm:w-9" />
             </div>
             <Show when={local.dateLabel}>
-              <span class="font-ui rounded-full bg-brand-500/90 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-white backdrop-blur-sm sm:text-xs">
+              <span class="font-ui rounded-full bg-accent-600 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ink-inverse backdrop-blur-sm">
                 {local.dateLabel}
               </span>
             </Show>
@@ -82,7 +82,7 @@ export function BentoCard(props: BentoCardProps) {
           <Button
             href={local.href}
             variant="ghost"
-            class="text-on-hero hover:text-on-hero h-auto w-full justify-start px-0 py-0 text-sm font-medium hover:bg-transparent sm:text-base"
+            class="text-on-hero hover:text-on-hero focus-visible:ring-accent-400 focus-visible:ring-offset-primary h-auto min-h-11 w-full justify-start px-0 py-3 text-sm font-medium hover:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:text-base"
           >
             <span class="inline-flex w-full items-center justify-between gap-3">
               <span>{local.cta}</span>

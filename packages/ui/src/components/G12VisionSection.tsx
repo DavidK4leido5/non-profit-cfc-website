@@ -97,7 +97,7 @@ export function G12VisionSection(props: G12VisionSectionProps) {
                 {(step, index) => (
                   <li class="flex gap-4 sm:gap-5">
                     <span
-                      class="bg-brand-500 text-on-hero font-ui flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold sm:h-10 sm:w-10"
+                      class="bg-accent-500 text-on-hero font-ui flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold sm:h-10 sm:w-10"
                       aria-hidden="true"
                     >
                       {index() + 1}

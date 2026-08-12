@@ -1,7 +1,14 @@
-import { createSignal, JSX, onCleanup, onMount, Show, splitProps } from "solid-js";
+import {
+  createSignal,
+  JSX,
+  onCleanup,
+  onMount,
+  Show,
+  splitProps,
+} from "solid-js";
 import { AnimatePresence, motion } from "motion-solid";
 import { springSnappy } from "../motion/presets";
-import { Button } from "./Button";
+import { CtaButton } from "./CtaButton";
 
 export type NavLink = {
   href: string;
@@ -83,16 +90,16 @@ function linkClass(
 
   if (transparent && tone === "light") {
     if (active) {
-      return `${base} font-medium text-white`;
+      return `${base} font-medium text-white drop-shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary`;
     }
-    return `${base} text-white/75 hover:text-white`;
+    return `${base} text-white drop-shadow-sm hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary`;
   }
 
   if (active) {
-    return `${base} font-medium text-brand-600 bg-brand-50`;
+    return `${base} font-medium text-accent-600 bg-accent-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface`;
   }
 
-  return `${base} text-ink-muted hover:text-ink hover:bg-surface-muted`;
+  return `${base} text-ink-muted hover:text-ink hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface`;
 }
 
 function usesLightHeroNav(transparent: boolean, tone: "light" | "dark") {
@@ -173,11 +180,20 @@ export function Navbar(props: NavbarProps) {
           : undefined
       }
     >
-      <div class="mx-auto flex max-w-nav items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:py-4 lg:px-12">
+      <Show when={lightHeroNav()}>
+        <div
+          class="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-primary/60 to-transparent transition-opacity duration-300"
+          classList={{ "opacity-0": scrolled() }}
+          aria-hidden="true"
+        />
+      </Show>
+      <div class="relative mx-auto flex max-w-nav items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:py-6 lg:px-12">
         <NavAnchor
           href={local.brand.href}
-          class={`flex min-w-0 max-w-[min(100%,16rem)] items-center gap-2.5 sm:max-w-none sm:gap-3 ${
-            lightHeroNav() ? "text-white" : "text-ink-heading"
+          class={`flex min-w-0 max-w-[min(100%,16rem)] items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:max-w-none sm:gap-3 ${
+            lightHeroNav()
+              ? "text-white drop-shadow-sm focus-visible:ring-white focus-visible:ring-offset-primary"
+              : "text-ink-heading focus-visible:ring-accent-500 focus-visible:ring-offset-surface"
           }`}
           onClick={closeMenu}
         >
@@ -186,13 +202,13 @@ export function Navbar(props: NavbarProps) {
               <img
                 src={logo().src}
                 alt={logo().alt}
-                class="h-9 w-auto shrink-0 object-contain sm:h-10"
+                class="h-12 w-auto shrink-0 object-contain sm:h-16"
                 loading="eager"
                 decoding="async"
               />
             )}
           </Show>
-          <span class="font-ui truncate text-base font-semibold tracking-tight sm:text-lg">
+          <span class="font-ui whitespace-pre-line text-base font-light leading-tight tracking-tight sm:text-lg">
             {local.brand.name}
           </span>
         </NavAnchor>
@@ -215,13 +231,14 @@ export function Navbar(props: NavbarProps) {
             fallback={
               <Show when={local.cta}>
                 {(cta) => (
-                  <Button
+                  <CtaButton
                     href={cta().href}
-                    variant="primary"
-                    class="ml-1 px-4 py-2 text-sm lg:ml-2"
+                    variant="cta"
+                    size="sm"
+                    class="ml-1 lg:ml-2"
                   >
                     {cta().label}
-                  </Button>
+                  </CtaButton>
                 )}
               </Show>
             }
@@ -234,8 +251,10 @@ export function Navbar(props: NavbarProps) {
 
         <button
           type="button"
-          class={`inline-flex shrink-0 items-center justify-center rounded-md p-2 transition-colors md:hidden ${
-            lightHeroNav() ? "hover:bg-white/10" : "hover:bg-surface-muted"
+          class={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 md:hidden ${
+            lightHeroNav()
+              ? "hover:bg-white/10 focus-visible:ring-white focus-visible:ring-offset-primary"
+              : "hover:bg-surface-muted focus-visible:ring-accent-500 focus-visible:ring-offset-surface"
           }`}
           aria-expanded={menuOpen()}
           aria-controls="mobile-nav"
@@ -244,7 +263,9 @@ export function Navbar(props: NavbarProps) {
         >
           <MenuIcon
             open={menuOpen()}
-            class={lightHeroNav() ? "h-6 w-6 text-white" : "h-6 w-6 text-ink-heading"}
+            class={
+              lightHeroNav() ? "h-6 w-6 text-white" : "h-6 w-6 text-ink-heading"
+            }
           />
         </button>
       </div>
@@ -276,19 +297,23 @@ export function Navbar(props: NavbarProps) {
                 fallback={
                   <Show when={local.cta}>
                     {(cta) => (
-                      <Button
+                      <CtaButton
                         href={cta().href}
-                        variant="primary"
-                        class="mt-2 w-full px-4 py-2.5 text-sm"
+                        variant="cta"
+                        size="sm"
+                        fullWidth
+                        class="mt-2"
                         onClick={closeMenu}
                       >
                         {cta().label}
-                      </Button>
+                      </CtaButton>
                     )}
                   </Show>
                 }
               >
-                <span class="px-3 py-2.5 text-sm text-ink-muted">{local.userEmail}</span>
+                <span class="px-3 py-2.5 text-sm text-ink-muted">
+                  {local.userEmail}
+                </span>
               </Show>
             </div>
           </motion.nav>

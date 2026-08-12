@@ -2,21 +2,21 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/church-page/api/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
 )
 
 type ActivitiesHandler struct {
-	pool *pgxpool.Pool
+	db *gorm.DB
 }
 
-func NewActivitiesHandler(pool *pgxpool.Pool) *ActivitiesHandler {
-	return &ActivitiesHandler{pool: pool}
+func NewActivitiesHandler(db *gorm.DB) *ActivitiesHandler {
+	return &ActivitiesHandler{db: db}
 }
 
 type activityInput struct {
@@ -45,30 +45,17 @@ func (h *ActivitiesHandler) ListAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ActivitiesHandler) list(w http.ResponseWriter, r *http.Request, publishedOnly bool) {
-	query := `
-		SELECT id, slug, name, description, date_label, href, cta, image_src, image_alt, icon, class_name,
-			body_html, body_gjs, sort_order, status, created_at, updated_at
-		FROM upcoming_activities`
+	q := h.db.WithContext(r.Context()).Model(&models.Activity{})
 	if publishedOnly {
-		query += ` WHERE status = 'published'`
+		q = q.Where("status = ?", "published")
 	}
-	query += ` ORDER BY sort_order ASC, created_at DESC`
-
-	rows, err := h.pool.Query(r.Context(), query)
-	if err != nil {
+	var items []models.Activity
+	if err := q.Order("sort_order ASC, created_at DESC").Find(&items).Error; err != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to list activities")
 		return
 	}
-	defer rows.Close()
-
-	items := make([]models.Activity, 0)
-	for rows.Next() {
-		item, err := scanActivity(rows)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "db_error", "Failed to scan activity")
-			return
-		}
-		items = append(items, item)
+	if items == nil {
+		items = []models.Activity{}
 	}
 	writeData(w, http.StatusOK, items)
 }
@@ -77,7 +64,7 @@ func (h *ActivitiesHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	item, err := h.getBySlug(r, slug, true)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Activity not found")
 			return
 		}
@@ -95,7 +82,7 @@ func (h *ActivitiesHandler) GetAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 	item, err := h.getByID(r, id)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(w, http.StatusNotFound, "not_found", "Activity not found")
 			return
 		}
@@ -132,7 +119,13 @@ func (h *ActivitiesHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	item, status, msg := h.save(r, &id, in)
 	if status != http.StatusOK {
-		writeError(w, status, "validation_error", msg)
+		code := "validation_error"
+		if status == http.StatusNotFound {
+			code = "not_found"
+		} else if status >= 500 {
+			code = "db_error"
+		}
+		writeError(w, status, code, msg)
 		return
 	}
 	writeData(w, http.StatusOK, item)
@@ -144,12 +137,12 @@ func (h *ActivitiesHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_id", "Invalid activity id")
 		return
 	}
-	tag, err := h.pool.Exec(r.Context(), `DELETE FROM upcoming_activities WHERE id = $1`, id)
-	if err != nil {
+	res := h.db.WithContext(r.Context()).Delete(&models.Activity{}, "id = ?", id)
+	if res.Error != nil {
 		writeError(w, http.StatusInternalServerError, "db_error", "Failed to delete activity")
 		return
 	}
-	if tag.RowsAffected() == 0 {
+	if res.RowsAffected == 0 {
 		writeError(w, http.StatusNotFound, "not_found", "Activity not found")
 		return
 	}
@@ -174,89 +167,59 @@ func (h *ActivitiesHandler) save(r *http.Request, id *uuid.UUID, in activityInpu
 		in.Status = "published"
 	}
 
-	var item models.Activity
-	var err error
-	if id == nil {
-		err = h.pool.QueryRow(r.Context(), `
-			INSERT INTO upcoming_activities (
-				slug, name, description, date_label, href, cta, image_src, image_alt, icon, class_name,
-				body_html, body_gjs, sort_order, status
-			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-			RETURNING id, slug, name, description, date_label, href, cta, image_src, image_alt, icon, class_name,
-				body_html, body_gjs, sort_order, status, created_at, updated_at
-		`, in.Slug, in.Name, clampString(in.Description, 1000), clampString(in.DateLabel, 40), clampString(in.Href, 300),
-			clampString(in.CTA, 80), clampString(in.ImageSrc, 2000), clampString(in.ImageAlt, 300), in.Icon,
-			clampString(in.ClassName, 200), in.BodyHTML, nullableJSON(in.BodyGJS), in.SortOrder, in.Status).Scan(
-			&item.ID, &item.Slug, &item.Name, &item.Description, &item.DateLabel, &item.Href, &item.CTA,
-			&item.ImageSrc, &item.ImageAlt, &item.Icon, &item.ClassName, &item.BodyHTML, &item.BodyGJS,
-			&item.SortOrder, &item.Status, &item.CreatedAt, &item.UpdatedAt,
-		)
-		if err != nil {
-			return models.Activity{}, http.StatusInternalServerError, "Failed to create activity"
-		}
-		return item, http.StatusCreated, ""
+	fields := models.Activity{
+		Slug:        in.Slug,
+		Name:        in.Name,
+		Description: clampString(in.Description, 1000),
+		DateLabel:   clampString(in.DateLabel, 40),
+		Href:        clampString(in.Href, 300),
+		CTA:         clampString(in.CTA, 80),
+		ImageSrc:    clampString(in.ImageSrc, 2000),
+		ImageAlt:    clampString(in.ImageAlt, 300),
+		Icon:        in.Icon,
+		ClassName:   clampString(in.ClassName, 200),
+		BodyHTML:    in.BodyHTML,
+		BodyGJS:     cleanJSON(in.BodyGJS),
+		SortOrder:   in.SortOrder,
+		Status:      in.Status,
 	}
 
-	err = h.pool.QueryRow(r.Context(), `
-		UPDATE upcoming_activities SET
-			slug=$2, name=$3, description=$4, date_label=$5, href=$6, cta=$7, image_src=$8, image_alt=$9,
-			icon=$10, class_name=$11, body_html=$12, body_gjs=$13, sort_order=$14, status=$15, updated_at=now()
-		WHERE id=$1
-		RETURNING id, slug, name, description, date_label, href, cta, image_src, image_alt, icon, class_name,
-			body_html, body_gjs, sort_order, status, created_at, updated_at
-	`, *id, in.Slug, in.Name, clampString(in.Description, 1000), clampString(in.DateLabel, 40), clampString(in.Href, 300),
-		clampString(in.CTA, 80), clampString(in.ImageSrc, 2000), clampString(in.ImageAlt, 300), in.Icon,
-		clampString(in.ClassName, 200), in.BodyHTML, nullableJSON(in.BodyGJS), in.SortOrder, in.Status).Scan(
-		&item.ID, &item.Slug, &item.Name, &item.Description, &item.DateLabel, &item.Href, &item.CTA,
-		&item.ImageSrc, &item.ImageAlt, &item.Icon, &item.ClassName, &item.BodyHTML, &item.BodyGJS,
-		&item.SortOrder, &item.Status, &item.CreatedAt, &item.UpdatedAt,
-	)
+	if id == nil {
+		fields.ID = uuid.New()
+		if err := h.db.WithContext(r.Context()).Create(&fields).Error; err != nil {
+			return models.Activity{}, http.StatusInternalServerError, "Failed to create activity"
+		}
+		return fields, http.StatusCreated, ""
+	}
+
+	existing, err := h.getByID(r, *id)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return models.Activity{}, http.StatusNotFound, "Activity not found"
 		}
 		return models.Activity{}, http.StatusInternalServerError, "Failed to update activity"
 	}
-	return item, http.StatusOK, ""
+
+	fields.ID = existing.ID
+	fields.CreatedAt = existing.CreatedAt
+	if err := h.db.WithContext(r.Context()).Save(&fields).Error; err != nil {
+		return models.Activity{}, http.StatusInternalServerError, "Failed to update activity"
+	}
+	return fields, http.StatusOK, ""
 }
 
 func (h *ActivitiesHandler) getByID(r *http.Request, id uuid.UUID) (models.Activity, error) {
 	var item models.Activity
-	err := h.pool.QueryRow(r.Context(), `
-		SELECT id, slug, name, description, date_label, href, cta, image_src, image_alt, icon, class_name,
-			body_html, body_gjs, sort_order, status, created_at, updated_at
-		FROM upcoming_activities WHERE id = $1
-	`, id).Scan(
-		&item.ID, &item.Slug, &item.Name, &item.Description, &item.DateLabel, &item.Href, &item.CTA,
-		&item.ImageSrc, &item.ImageAlt, &item.Icon, &item.ClassName, &item.BodyHTML, &item.BodyGJS,
-		&item.SortOrder, &item.Status, &item.CreatedAt, &item.UpdatedAt,
-	)
+	err := h.db.WithContext(r.Context()).First(&item, "id = ?", id).Error
 	return item, err
 }
 
 func (h *ActivitiesHandler) getBySlug(r *http.Request, slug string, publishedOnly bool) (models.Activity, error) {
-	query := `
-		SELECT id, slug, name, description, date_label, href, cta, image_src, image_alt, icon, class_name,
-			body_html, body_gjs, sort_order, status, created_at, updated_at
-		FROM upcoming_activities WHERE slug = $1`
+	q := h.db.WithContext(r.Context()).Where("slug = ?", slug)
 	if publishedOnly {
-		query += ` AND status = 'published'`
+		q = q.Where("status = ?", "published")
 	}
 	var item models.Activity
-	err := h.pool.QueryRow(r.Context(), query, slug).Scan(
-		&item.ID, &item.Slug, &item.Name, &item.Description, &item.DateLabel, &item.Href, &item.CTA,
-		&item.ImageSrc, &item.ImageAlt, &item.Icon, &item.ClassName, &item.BodyHTML, &item.BodyGJS,
-		&item.SortOrder, &item.Status, &item.CreatedAt, &item.UpdatedAt,
-	)
-	return item, err
-}
-
-func scanActivity(row scannable) (models.Activity, error) {
-	var item models.Activity
-	err := row.Scan(
-		&item.ID, &item.Slug, &item.Name, &item.Description, &item.DateLabel, &item.Href, &item.CTA,
-		&item.ImageSrc, &item.ImageAlt, &item.Icon, &item.ClassName, &item.BodyHTML, &item.BodyGJS,
-		&item.SortOrder, &item.Status, &item.CreatedAt, &item.UpdatedAt,
-	)
+	err := q.First(&item).Error
 	return item, err
 }

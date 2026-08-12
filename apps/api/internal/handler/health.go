@@ -6,16 +6,16 @@ import (
 	"time"
 
 	"github.com/church-page/api/internal/config"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
 )
 
 type HealthHandler struct {
-	cfg  config.Config
-	pool *pgxpool.Pool
+	cfg config.Config
+	db  *gorm.DB
 }
 
-func NewHealthHandler(cfg config.Config, pool *pgxpool.Pool) *HealthHandler {
-	return &HealthHandler{cfg: cfg, pool: pool}
+func NewHealthHandler(cfg config.Config, db *gorm.DB) *HealthHandler {
+	return &HealthHandler{cfg: cfg, db: db}
 }
 
 // Liveness godoc
@@ -37,7 +37,7 @@ func (h *HealthHandler) Liveness(w http.ResponseWriter, _ *http.Request) {
 // @Success      200  {object}  HealthResponse
 // @Router       /ready [get]
 func (h *HealthHandler) Readiness(w http.ResponseWriter, _ *http.Request) {
-	if h.cfg.DatabaseURL == "" || h.pool == nil {
+	if h.cfg.DatabaseURL == "" || h.db == nil {
 		writeJSON(w, http.StatusOK, HealthResponse{
 			Status:   "ok",
 			Database: "not configured",
@@ -47,7 +47,9 @@ func (h *HealthHandler) Readiness(w http.ResponseWriter, _ *http.Request) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	if err := h.pool.Ping(ctx); err != nil {
+
+	sqlDB, err := h.db.DB()
+	if err != nil || sqlDB.PingContext(ctx) != nil {
 		writeJSON(w, http.StatusServiceUnavailable, HealthResponse{
 			Status:   "unavailable",
 			Database: "unreachable",
