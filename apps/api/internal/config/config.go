@@ -23,6 +23,7 @@ type Config struct {
 	CloudinaryFolder    string
 	AdminAPIToken       string
 	MigrationsDir       string
+	GatewaySharedSecret string
 }
 
 func Load() (Config, error) {
@@ -48,10 +49,15 @@ func Load() (Config, error) {
 		CloudinaryFolder:    getEnv("CLOUDINARY_FOLDER", "church-dev"),
 		AdminAPIToken:       os.Getenv("ADMIN_API_TOKEN"),
 		MigrationsDir:       getEnv("MIGRATIONS_DIR", "migrations"),
+		GatewaySharedSecret: os.Getenv("GATEWAY_SHARED_SECRET"),
 	}
 
 	if cfg.Port == "" {
 		return Config{}, fmt.Errorf("PORT must not be empty")
+	}
+
+	if strings.EqualFold(cfg.Env, "production") && cfg.GatewaySharedSecret == "" {
+		return Config{}, fmt.Errorf("GATEWAY_SHARED_SECRET is required when ENV=production")
 	}
 
 	return cfg, nil

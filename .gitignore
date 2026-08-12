@@ -8,6 +8,7 @@ packages/ui/storybook-static/
 bin/
 .env
 .env.local
+.env.production.local
 *.log
 .DS_Store
 notes.txt

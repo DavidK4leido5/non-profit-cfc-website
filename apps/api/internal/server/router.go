@@ -31,6 +31,7 @@ func NewRouter(deps Deps) http.Handler {
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.Logger(deps.Logger))
 	r.Use(middleware.CORS(deps.Config.CORSOrigins))
+	r.Use(middleware.RequireGateway(deps.Config.GatewaySharedSecret))
 
 	health := handler.NewHealthHandler(deps.Config, deps.DB)
 	auth := handler.NewAuthHandler()

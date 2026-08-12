@@ -23,7 +23,8 @@
     "swagger": "turbo run swagger --filter=@church/api",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "deploy:cloudrun": "bash ./scripts/deploy-cloud-run.sh"
   },
   "packageManager": "pnpm@11.17.0",
   "engines": {

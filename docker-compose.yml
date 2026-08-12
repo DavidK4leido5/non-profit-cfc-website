@@ -86,6 +86,7 @@ services:
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
       SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-}
       SUPER_ADMIN_NAME: ${SUPER_ADMIN_NAME:-Super Admin}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-}
     volumes:
       - .:/app
       # Separate from web — sharing one store caused auth to wipe links web still pointed at.
@@ -139,6 +140,7 @@ services:
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
       CLOUDINARY_FOLDER: ${CLOUDINARY_FOLDER:-church-dev}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-}
     networks:
       church_net:
         aliases:

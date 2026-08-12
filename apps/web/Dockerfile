@@ -24,6 +24,15 @@ COPY --from=prepare /app/out/full/ .
 # ---
 FROM base AS builder-prod
 
+ARG VITE_API_BASE_URL=/api/v1
+ARG VITE_AUTH_BASE_URL=/api/auth
+ARG VITE_CLOUDINARY_CLOUD_NAME=
+ARG VITE_APP_NAME=Church
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_AUTH_BASE_URL=$VITE_AUTH_BASE_URL \
+    VITE_CLOUDINARY_CLOUD_NAME=$VITE_CLOUDINARY_CLOUD_NAME \
+    VITE_APP_NAME=$VITE_APP_NAME
+
 COPY --from=builder /app /app
 WORKDIR /app
 RUN pnpm exec turbo run build --filter=@church/web
@@ -48,7 +57,12 @@ CMD ["pnpm", "exec", "turbo", "run", "dev", "--filter=@church/web", "--filter=@c
 # ---
 FROM nginx:1.27-alpine AS runner
 
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+# Official nginx image runs envsubst on /etc/nginx/templates/*.template → conf.d/
+ENV PORT=80
+ENV API_UPSTREAM=http://api:8080
+ENV AUTH_UPSTREAM=http://auth:3001
+ENV GATEWAY_SHARED_SECRET=""
+COPY apps/web/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder-prod /app/apps/web/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

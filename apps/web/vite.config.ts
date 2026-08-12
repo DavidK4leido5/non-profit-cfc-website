@@ -53,10 +53,24 @@ export default defineConfig({
       "/api/auth": {
         target: process.env.VITE_AUTH_PROXY ?? "http://localhost:3001",
         changeOrigin: true,
+        ...(process.env.GATEWAY_SHARED_SECRET
+          ? {
+              headers: {
+                "X-Church-Gateway": process.env.GATEWAY_SHARED_SECRET,
+              },
+            }
+          : {}),
       },
       "/api/v1": {
         target: process.env.VITE_API_PROXY ?? "http://localhost:8080",
         changeOrigin: true,
+        ...(process.env.GATEWAY_SHARED_SECRET
+          ? {
+              headers: {
+                "X-Church-Gateway": process.env.GATEWAY_SHARED_SECRET,
+              },
+            }
+          : {}),
       },
     },
   },

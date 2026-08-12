@@ -11,8 +11,15 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { Pool } from "pg";
 import { auth, authFeatures } from "./auth.js";
+import {
+  GATEWAY_HEADER,
+  assertGatewayConfigured,
+  isValidGatewayRequest,
+} from "./gateway.js";
 
-const port = Number(process.env.AUTH_PORT ?? 3001);
+assertGatewayConfigured();
+
+const port = Number(process.env.PORT ?? process.env.AUTH_PORT ?? 3001);
 const hostname = process.env.HOST ?? "0.0.0.0";
 
 const trustedOrigins = (
@@ -27,6 +34,14 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const app = new Hono();
 
 app.get("/health", (c) => c.json({ status: "ok", service: "auth" }));
+
+// Only /api/* (not /health). Direct *.run.app hits without the nginx header get 403.
+app.use("/api/*", async (c, next) => {
+  if (!isValidGatewayRequest(c.req.header(GATEWAY_HEADER))) {
+    return c.json({ error: "Direct access is not allowed" }, 403);
+  }
+  await next();
+});
 
 app.get("/api/auth/church/features", (c) =>
   c.json({
@@ -57,7 +72,7 @@ app.get("/api/auth/church/branches", async (c) => {
     `SELECT id, name, slug, "createdAt",
             (SELECT COUNT(*)::int FROM member m WHERE m."organizationId" = o.id) AS "memberCount"
      FROM organization o
-     ORDER BY "createdAt" DESC`,
+    ORDER BY "createdAt" DESC`,
   );
   return c.json(rows);
 });

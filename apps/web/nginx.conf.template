@@ -1,26 +1,23 @@
-# Local Compose fallback when the runner image is built without envsubst.
-# Production/Cloud Run uses nginx.conf.template via /etc/nginx/templates/.
-# Rate limits only on this web gateway (not in api/auth apps). No Redis.
+# Upstream URLs are substituted at container start (Compose DNS or Cloud Run HTTPS).
+# Required env: PORT, API_UPSTREAM, AUTH_UPSTREAM
+#
+# Rate limits live only here (web gateway). Do not duplicate in api/auth apps.
+# Zones are in-memory per nginx worker/instance — no Redis. Fine for a church site;
+# with Cloud Run max-instances>1, effective limit ≈ rate × instances.
 
-upstream church_api {
-  server api:8080;
-}
-
-upstream church_auth {
-  server auth:3001;
-}
-
+# Trust Cloud Run / proxy hop so $binary_remote_addr is the client (X-Forwarded-For).
 set_real_ip_from 0.0.0.0/0;
 set_real_ip_from ::/0;
 real_ip_header X-Forwarded-For;
 real_ip_recursive on;
 
+# ~160k IP keys per 10m zone at 64 bytes/key (ipv4)
 limit_req_zone $binary_remote_addr zone=church_auth:10m rate=3r/s;
 limit_req_zone $binary_remote_addr zone=church_api:10m rate=15r/s;
 limit_req_status 429;
 
 server {
-  listen 80;
+  listen ${PORT};
   server_name _;
   root /usr/share/nginx/html;
   index index.html;
@@ -30,25 +27,29 @@ server {
 
   location /api/auth/ {
     limit_req zone=church_auth burst=20 nodelay;
-    proxy_pass http://church_auth;
+    proxy_pass ${AUTH_UPSTREAM};
     proxy_http_version 1.1;
-    proxy_set_header Host $host;
+    proxy_ssl_server_name on;
+    proxy_set_header Host $proxy_host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     proxy_set_header Cookie $http_cookie;
     proxy_pass_header Set-Cookie;
-    # Runner image uses nginx.conf.template + GATEWAY_SHARED_SECRET via envsubst.
+    # Proves the request came through this gateway (api/auth reject without it).
+    proxy_set_header X-Church-Gateway ${GATEWAY_SHARED_SECRET};
   }
 
   location /api/v1/ {
     limit_req zone=church_api burst=40 nodelay;
-    proxy_pass http://church_api;
+    proxy_pass ${API_UPSTREAM};
     proxy_http_version 1.1;
-    proxy_set_header Host $host;
+    proxy_ssl_server_name on;
+    proxy_set_header Host $proxy_host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Church-Gateway ${GATEWAY_SHARED_SECRET};
   }
 
   location / {
