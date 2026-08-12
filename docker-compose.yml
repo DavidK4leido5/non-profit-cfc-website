@@ -52,6 +52,9 @@ services:
           path: ./pnpm-lock.yaml
           target: /app/pnpm-lock.yaml
         - action: sync+restart
+          path: ./apps/web/package.json
+          target: /app/apps/web/package.json
+        - action: sync+restart
           path: ./packages/ui/package.json
           target: /app/packages/ui/package.json
         - action: rebuild
