@@ -1,0 +1,51 @@
+# Production stack: static web (nginx) + Go API + Better Auth
+# All three join `church_net` and talk by service DNS name.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# Browser → web:80
+#   /api/auth/* → auth:3001  (nginx proxy on church_net)
+#   /api/v1/*   → api:8080
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+      target: runner
+    ports:
+      - "${WEB_PORT:-80}:80"
+    environment:
+      VITE_API_BASE_URL: /api/v1
+      VITE_AUTH_BASE_URL: /api/auth
+    volumes: !reset []
+    command: !reset null
+    networks:
+      - church_net
+    depends_on:
+      api:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+
+  auth:
+    build:
+      context: .
+      dockerfile: ./apps/auth/Dockerfile
+      target: runner
+    volumes: !reset []
+    environment:
+      HOST: "0.0.0.0"
+      AUTH_PORT: "3001"
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://127.0.0.1}
+    networks:
+      church_net:
+        aliases:
+          - auth
+
+  api:
+    networks:
+      church_net:
+        aliases:
+          - api

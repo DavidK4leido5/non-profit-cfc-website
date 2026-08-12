@@ -13,6 +13,7 @@ import { Pool } from "pg";
 import { auth } from "./auth.js";
 
 const port = Number(process.env.AUTH_PORT ?? 3001);
+const hostname = process.env.HOST ?? "0.0.0.0";
 
 const trustedOrigins = (
   process.env.CORS_ORIGINS ?? "http://localhost:5173,http://127.0.0.1:5173"
@@ -56,6 +57,6 @@ app.get("/api/auth/church/branches", async (c) => {
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
-serve({ fetch: app.fetch, port }, () => {
-  console.log(`@church/auth listening on http://localhost:${port}`);
+serve({ fetch: app.fetch, port, hostname }, () => {
+  console.log(`@church/auth listening on http://${hostname}:${port}`);
 });

@@ -17,8 +17,21 @@ COPY --from=prepare /app/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=prepare /app/out/full/ .
 
+# --- Local / Compose Watch ---
 FROM base AS dev
 COPY --from=builder /app /app
 WORKDIR /app
 EXPOSE 3001
+ENV HOST=0.0.0.0
+ENV AUTH_PORT=3001
 CMD ["pnpm", "--filter", "@church/auth", "dev"]
+
+# --- Production / Cloud Run ---
+FROM base AS runner
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV AUTH_PORT=3001
+COPY --from=builder /app /app
+WORKDIR /app
+EXPOSE 3001
+CMD ["pnpm", "--filter", "@church/auth", "start"]
