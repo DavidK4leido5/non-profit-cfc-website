@@ -1,59 +1,126 @@
-import { A, useNavigate } from "@solidjs/router";
-import { createSignal, Show } from "solid-js";
+import { useNavigate } from "@solidjs/router";
+import { createResource, createSignal, Show } from "solid-js";
 import { CtaButton } from "@church/ui/cta-button";
-import { PageShell } from "@church/ui/page-shell";
+import {
+  AuthError,
+  AuthLabel,
+  AuthNotice,
+  AuthSplitShell,
+  authDividerClass,
+  authFieldClass,
+  authIconButtonClass,
+  authSocialButtonClass,
+} from "~/app/components/auth/AuthSplitShell";
 import { authClient } from "~/lib/auth-client";
+
+type AuthFeatures = {
+  google: boolean;
+  requireEmailVerification: boolean;
+};
+
+async function loadFeatures(): Promise<AuthFeatures> {
+  try {
+    const res = await fetch("/api/auth/church/features");
+    if (!res.ok) return { google: false, requireEmailVerification: true };
+    return (await res.json()) as AuthFeatures;
+  } catch {
+    return { google: false, requireEmailVerification: true };
+  }
+}
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const [name, setName] = createSignal("");
+  const [features] = createResource(loadFeatures);
+  const [firstName, setFirstName] = createSignal("");
+  const [lastName, setLastName] = createSignal("");
   const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
+  const [showPassword, setShowPassword] = createSignal(false);
+  const [agreed, setAgreed] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
+  const [notice, setNotice] = createSignal<string | null>(null);
   const [pending, setPending] = createSignal(false);
 
   const onSubmit = async (event: Event) => {
     event.preventDefault();
     setError(null);
+    setNotice(null);
+    if (!agreed()) {
+      setError("Please agree to the Terms & Conditions to continue.");
+      return;
+    }
     setPending(true);
+    const name = `${firstName().trim()} ${lastName().trim()}`.trim();
     const { error: err } = await authClient.signUp.email({
-      name: name().trim(),
+      name,
       email: email().trim(),
       password: password(),
+      callbackURL: "/dashboard",
     });
     setPending(false);
     if (err) {
       setError(err.message ?? "Registration failed");
       return;
     }
+    if (features()?.requireEmailVerification) {
+      setNotice(
+        "Account created. Check your email to verify (in local dev the link is printed in the auth container logs).",
+      );
+      return;
+    }
     navigate("/dashboard");
   };
 
+  const onGoogle = async () => {
+    setError(null);
+    setPending(true);
+    const { error: err } = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/dashboard",
+    });
+    setPending(false);
+    if (err) setError(err.message ?? "Google sign-up failed");
+  };
+
   return (
-    <PageShell
-      title="Create account"
-      description="Register as a church member. Branch admins are assigned by a super admin."
+    <AuthSplitShell
+      title="Create an account"
+      alternate={{ prompt: "Already have an account?", label: "Log in", href: "/auth/login" }}
     >
-      <form class="mx-auto flex max-w-md flex-col gap-4" onSubmit={onSubmit} noValidate>
-        <div>
-          <label for="register-name" class="text-ink-heading mb-1.5 block text-sm font-medium">
-            Full name
-          </label>
-          <input
-            id="register-name"
-            type="text"
-            autocomplete="name"
-            required
-            aria-required="true"
-            class="border-border focus-visible:ring-accent-500 w-full rounded-lg border bg-surface px-3 py-2.5 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            value={name()}
-            onInput={(e) => setName(e.currentTarget.value)}
-          />
+      <form class="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <AuthLabel for="register-first">First name</AuthLabel>
+            <input
+              id="register-first"
+              type="text"
+              autocomplete="given-name"
+              required
+              aria-required="true"
+              class={authFieldClass()}
+              placeholder="John"
+              value={firstName()}
+              onInput={(e) => setFirstName(e.currentTarget.value)}
+            />
+          </div>
+          <div>
+            <AuthLabel for="register-last">Last name</AuthLabel>
+            <input
+              id="register-last"
+              type="text"
+              autocomplete="family-name"
+              required
+              aria-required="true"
+              class={authFieldClass()}
+              placeholder="Doe"
+              value={lastName()}
+              onInput={(e) => setLastName(e.currentTarget.value)}
+            />
+          </div>
         </div>
+
         <div>
-          <label for="register-email" class="text-ink-heading mb-1.5 block text-sm font-medium">
-            Email
-          </label>
+          <AuthLabel for="register-email">Email</AuthLabel>
           <input
             id="register-email"
             type="email"
@@ -62,45 +129,122 @@ export function RegisterPage() {
             aria-required="true"
             aria-invalid={error() ? true : undefined}
             aria-describedby={error() ? "register-error" : undefined}
-            class="border-border focus-visible:ring-accent-500 w-full rounded-lg border bg-surface px-3 py-2.5 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            class={authFieldClass()}
+            placeholder="john@example.com"
             value={email()}
             onInput={(e) => setEmail(e.currentTarget.value)}
           />
         </div>
+
         <div>
-          <label for="register-password" class="text-ink-heading mb-1.5 block text-sm font-medium">
-            Password
-          </label>
-          <input
-            id="register-password"
-            type="password"
-            autocomplete="new-password"
-            required
-            aria-required="true"
-            minLength={8}
-            class="border-border focus-visible:ring-accent-500 w-full rounded-lg border bg-surface px-3 py-2.5 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            value={password()}
-            onInput={(e) => setPassword(e.currentTarget.value)}
-          />
+          <AuthLabel for="register-password">Password</AuthLabel>
+          <div class="relative">
+            <input
+              id="register-password"
+              type={showPassword() ? "text" : "password"}
+              autocomplete="new-password"
+              required
+              aria-required="true"
+              minLength={8}
+              class={`${authFieldClass()} pr-12`}
+              placeholder="At least 8 characters"
+              value={password()}
+              onInput={(e) => setPassword(e.currentTarget.value)}
+            />
+            <button
+              type="button"
+              class={authIconButtonClass()}
+              aria-label={showPassword() ? "Hide password" : "Show password"}
+              onClick={() => setShowPassword((v) => !v)}
+            >
+              <EyeIcon open={showPassword()} />
+            </button>
+          </div>
         </div>
-        <Show when={error()}>
-          <p id="register-error" role="alert" class="text-sm text-red-600">
-            {error()}
-          </p>
-        </Show>
-        <CtaButton type="submit" variant="cta" fullWidth disabled={pending()}>
+
+        <label class="flex items-start gap-3 text-sm text-ink-muted">
+          <input
+            type="checkbox"
+            class="mt-1 h-4 w-4 rounded border-border text-accent-600 focus-visible:ring-accent-500"
+            checked={agreed()}
+            onChange={(e) => setAgreed(e.currentTarget.checked)}
+          />
+          <span>
+            I agree to the{" "}
+            <a
+              href="/resources"
+              class="font-medium text-accent-600 underline-offset-2 hover:underline"
+            >
+              Terms & Conditions
+            </a>
+          </span>
+        </label>
+
+        <AuthError id="register-error" message={error()} />
+        <AuthNotice message={notice()} />
+
+        <CtaButton type="submit" variant="cta" fullWidth disabled={pending()} class="mt-1 rounded-xl py-3 focus-visible:ring-offset-surface">
           {pending() ? "Creating account…" : "Create account"}
         </CtaButton>
-        <p class="text-ink-muted text-sm">
-          Already registered?{" "}
-          <A
-            href="/auth/login"
-            class="text-accent-600 focus-visible:ring-accent-500 font-medium underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2"
-          >
-            Sign in
-          </A>
-        </p>
       </form>
-    </PageShell>
+
+      <Show when={features()?.google}>
+        <div class={authDividerClass()}>
+          <span class="h-px flex-1 bg-border" />
+          Or register with
+          <span class="h-px flex-1 bg-border" />
+        </div>
+        <button
+          type="button"
+          class={authSocialButtonClass()}
+          onClick={onGoogle}
+          disabled={pending()}
+        >
+          <GoogleMark />
+          Google
+        </button>
+      </Show>
+    </AuthSplitShell>
+  );
+}
+
+function EyeIcon(props: { open: boolean }) {
+  return (
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+      <Show
+        when={props.open}
+        fallback={
+          <>
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+            <circle cx="12" cy="12" r="3" />
+          </>
+        }
+      >
+        <path d="M3 3l18 18M10.5 10.6a3 3 0 004 4M9.4 5.5A10.4 10.4 0 0112 5c6.5 0 10 7 10 7a17.6 17.6 0 01-4.1 4.7M6.1 6.2A17.4 17.4 0 002 12s3.5 7 10 7c1.3 0 2.5-.2 3.6-.6" />
+      </Show>
+    </svg>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.4a5.5 5.5 0 01-2.4 3.6v3h3.9c2.3-2.1 3.6-5.2 3.6-8.7z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3a7.2 7.2 0 01-10.7-3.8H1.3v3.1A12 12 0 0012 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.3 14.3A7.2 7.2 0 014.9 12c0-.8.1-1.6.4-2.3V6.6H1.3A12 12 0 000 12c0 1.9.5 3.8 1.3 5.4l4-3.1z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0012 0 12 12 0 001.3 6.6l4 3.1A7.1 7.1 0 0112 4.8z"
+      />
+    </svg>
   );
 }

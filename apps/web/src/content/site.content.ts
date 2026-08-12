@@ -134,12 +134,19 @@ export const siteContent = {
     },
   },
 
+  auth: {
+    tagline: "A place to belong, believe, and become",
+    sideImage: {
+      src: "https://images.unsplash.com/photo-1438032005730-c779502df39b?w=1600&q=80",
+      alt: "Sunlight through church windows",
+    },
+  },
+
   nav: {
     links: [
       { href: "/", label: "Home" },
       { href: "/board", label: "Board" },
       { href: "/resources", label: "Resources" },
-      { href: "/admin", label: "Admin" },
     ] satisfies SiteNavLink[],
     signIn: {
       label: "Sign in",

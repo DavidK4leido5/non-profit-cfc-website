@@ -1,15 +1,16 @@
 import { A, useNavigate } from "@solidjs/router";
 import { createEffect, For, ParentProps, Show } from "solid-js";
-import { CtaButton } from "@church/ui/cta-button";
+import { Button } from "~/components/ui/button";
 import {
-  authClient,
   getUserRole,
   isBranchAdmin,
   isSuperAdmin,
 } from "~/lib/auth-client";
 import { signOut, useAuthSession } from "~/app/stores/session";
 
-export function DashboardShell(props: ParentProps<{ title: string; description?: string }>) {
+export function DashboardShell(
+  props: ParentProps<{ title: string; description?: string }>,
+) {
   const navigate = useNavigate();
   const sessionState = useAuthSession();
 
@@ -25,7 +26,10 @@ export function DashboardShell(props: ParentProps<{ title: string; description?:
   const links = () => {
     const u = user();
     if (!u) return [];
-    const items = [{ href: "/dashboard", label: "Overview" }];
+    const items = [
+      { href: "/dashboard", label: "Overview" },
+      { href: "/admin", label: "Site CMS" },
+    ];
     if (isBranchAdmin(u)) {
       items.push({ href: "/dashboard/accounts", label: "Accounts" });
       items.push({ href: "/dashboard/branch/setup", label: "Branch setup" });
@@ -51,7 +55,7 @@ export function DashboardShell(props: ParentProps<{ title: string; description?:
               <header class="mb-8 flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p class="text-ink-subtle text-sm font-medium uppercase tracking-wide">
-                    {getUserRole(u())} · {u().email}
+                    Admin · {getUserRole(u())} · {u().email}
                   </p>
                   <h1 class="text-ink-heading mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
                     {props.title}
@@ -60,12 +64,12 @@ export function DashboardShell(props: ParentProps<{ title: string; description?:
                     <p class="text-ink-muted mt-2 max-w-2xl">{props.description}</p>
                   </Show>
                 </div>
-                <CtaButton type="button" variant="secondary" size="sm" onClick={onSignOut}>
+                <Button type="button" variant="outline" size="sm" onClick={onSignOut}>
                   Sign out
-                </CtaButton>
+                </Button>
               </header>
 
-              <nav aria-label="Dashboard" class="mb-8 flex flex-wrap gap-2">
+              <nav aria-label="Admin" class="mb-8 flex flex-wrap gap-2">
                 <For each={links()}>
                   {(link) => (
                     <A

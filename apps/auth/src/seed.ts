@@ -34,9 +34,13 @@ async function seed() {
     const existing = await pool.query(`SELECT id, role FROM "user" WHERE email = $1`, [email]);
     if (existing.rowCount && existing.rows[0]) {
       if (existing.rows[0].role !== "super_admin") {
-        await pool.query(`UPDATE "user" SET role = 'super_admin' WHERE email = $1`, [email]);
+        await pool.query(
+          `UPDATE "user" SET role = 'super_admin', "emailVerified" = true WHERE email = $1`,
+          [email],
+        );
         console.log("Updated existing user to super_admin:", email);
       } else {
+        await pool.query(`UPDATE "user" SET "emailVerified" = true WHERE email = $1`, [email]);
         console.log("Super admin already exists:", email);
       }
       return;
@@ -50,7 +54,10 @@ async function seed() {
         role: "super_admin",
       },
     });
-    await pool.query(`UPDATE "user" SET role = 'super_admin' WHERE email = $1`, [email]);
+    await pool.query(
+      `UPDATE "user" SET role = 'super_admin', "emailVerified" = true WHERE email = $1`,
+      [email],
+    );
     console.log("Seeded super_admin:", email);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

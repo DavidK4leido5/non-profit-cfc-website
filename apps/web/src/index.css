@@ -1,6 +1,28 @@
 @import "@church/ui/styles.css";
 @source "./**/*.{tsx,ts}";
 
+/*
+ * solidcn semantic tokens — bridged onto the church design system.
+ * Official React shadcn won't work here; solidcn components use these names.
+ */
+@theme inline {
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-ink);
+  --color-primary-foreground: var(--color-ink-inverse);
+  --color-secondary: var(--color-surface-muted);
+  --color-secondary-foreground: var(--color-ink);
+  --color-muted: var(--color-surface-muted);
+  --color-muted-foreground: var(--color-ink-muted);
+  --color-accent: var(--color-accent-50);
+  --color-accent-foreground: var(--color-accent-700);
+  --color-destructive: var(--color-error);
+  --color-destructive-foreground: #ffffff;
+  --color-input: var(--color-border);
+  --color-ring: var(--color-accent-500);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-ink);
+}
+
 /* Admin CMS — utilitarian, dense, calm */
 .admin-btn {
   display: inline-flex;

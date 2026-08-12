@@ -21,9 +21,12 @@ COPY --from=prepare /app/out/full/ .
 FROM base AS dev
 COPY --from=builder /app /app
 WORKDIR /app
+RUN chmod +x /app/apps/auth/entrypoint.sh
 EXPOSE 3001
 ENV HOST=0.0.0.0
 ENV AUTH_PORT=3001
+ENV CI=true
+ENTRYPOINT ["/app/apps/auth/entrypoint.sh"]
 CMD ["pnpm", "--filter", "@church/auth", "dev"]
 
 # --- Production / Cloud Run ---

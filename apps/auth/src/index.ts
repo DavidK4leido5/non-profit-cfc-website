@@ -10,7 +10,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { Pool } from "pg";
-import { auth } from "./auth.js";
+import { auth, authFeatures } from "./auth.js";
 
 const port = Number(process.env.AUTH_PORT ?? 3001);
 const hostname = process.env.HOST ?? "0.0.0.0";
@@ -27,6 +27,13 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const app = new Hono();
 
 app.get("/health", (c) => c.json({ status: "ok", service: "auth" }));
+
+app.get("/api/auth/church/features", (c) =>
+  c.json({
+    google: authFeatures.googleEnabled,
+    requireEmailVerification: authFeatures.requireEmailVerification,
+  }),
+);
 
 app.use(
   "/api/auth/*",

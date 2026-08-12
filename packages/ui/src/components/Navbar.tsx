@@ -8,7 +8,7 @@ import {
 } from "solid-js";
 import { AnimatePresence, motion } from "motion-solid";
 import { springSnappy } from "../motion/presets";
-import { CtaButton } from "./CtaButton";
+import { ctaButtonClass } from "./cta-button-class";
 
 export type NavLink = {
   href: string;
@@ -44,6 +44,8 @@ export type NavbarProps = {
   links: readonly NavLink[];
   cta?: NavbarCta;
   userEmail?: string | null;
+  /** Optional signed-in control (e.g. avatar). Prefer over plain email text. */
+  userSlot?: JSX.Element;
   Link?: (props: NavbarLinkProps) => JSX.Element;
   /** solid = default bar; transparent = overlays hero (Bobbin-style) */
   variant?: "solid" | "transparent";
@@ -112,6 +114,7 @@ export function Navbar(props: NavbarProps) {
     "links",
     "cta",
     "userEmail",
+    "userSlot",
     "Link",
     "variant",
     "tone",
@@ -227,25 +230,34 @@ export function Navbar(props: NavbarProps) {
           ))}
 
           <Show
-            when={local.userEmail}
+            when={local.userSlot ?? local.userEmail}
             fallback={
               <Show when={local.cta}>
                 {(cta) => (
-                  <CtaButton
+                  <NavAnchor
                     href={cta().href}
-                    variant="cta"
-                    size="sm"
-                    class="ml-1 lg:ml-2"
+                    class={ctaButtonClass({
+                      variant: "cta",
+                      size: "sm",
+                      class: "ml-1 lg:ml-2",
+                    })}
                   >
                     {cta().label}
-                  </CtaButton>
+                  </NavAnchor>
                 )}
               </Show>
             }
           >
-            <span class="ml-2 max-w-40 truncate text-sm text-ink-muted lg:max-w-none">
-              {local.userEmail}
-            </span>
+            <Show
+              when={local.userSlot}
+              fallback={
+                <span class="ml-2 max-w-40 truncate text-sm text-ink-muted lg:max-w-none">
+                  {local.userEmail}
+                </span>
+              }
+            >
+              {local.userSlot}
+            </Show>
           </Show>
         </nav>
 
@@ -293,27 +305,38 @@ export function Navbar(props: NavbarProps) {
               ))}
 
               <Show
-                when={local.userEmail}
+                when={local.userSlot ?? local.userEmail}
                 fallback={
                   <Show when={local.cta}>
                     {(cta) => (
-                      <CtaButton
+                      <NavAnchor
                         href={cta().href}
-                        variant="cta"
-                        size="sm"
-                        fullWidth
-                        class="mt-2"
+                        class={ctaButtonClass({
+                          variant: "cta",
+                          size: "sm",
+                          fullWidth: true,
+                          class: "mt-2",
+                        })}
                         onClick={closeMenu}
                       >
                         {cta().label}
-                      </CtaButton>
+                      </NavAnchor>
                     )}
                   </Show>
                 }
               >
-                <span class="px-3 py-2.5 text-sm text-ink-muted">
-                  {local.userEmail}
-                </span>
+                <Show
+                  when={local.userSlot}
+                  fallback={
+                    <span class="px-3 py-2.5 text-sm text-ink-muted">
+                      {local.userEmail}
+                    </span>
+                  }
+                >
+                  <div class="mt-2 flex items-center px-1" onClick={closeMenu}>
+                    {local.userSlot}
+                  </div>
+                </Show>
               </Show>
             </div>
           </motion.nav>

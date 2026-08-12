@@ -13,6 +13,7 @@ import { BoardPage } from "./routes/board/index";
 import { HomePage } from "./routes/index";
 import { LoginPage } from "./routes/auth/login";
 import { RegisterPage } from "./routes/auth/register";
+import { ResetPasswordPage } from "./routes/auth/reset-password";
 import { ResourcesPage } from "./routes/resources/index";
 import { DashboardHomePage } from "./routes/dashboard/index";
 import { DashboardAccountsPage } from "./routes/dashboard/accounts";
@@ -29,6 +30,7 @@ export function App() {
         <Route path="/resources" component={ResourcesPage} />
         <Route path="/auth/login" component={LoginPage} />
         <Route path="/auth/register" component={RegisterPage} />
+        <Route path="/auth/reset-password" component={ResetPasswordPage} />
 
         <Route path="/dashboard" component={DashboardHomePage} />
         <Route path="/dashboard/accounts" component={DashboardAccountsPage} />

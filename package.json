@@ -15,6 +15,8 @@
     "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d",
     "docker:build": "docker compose build",
     "docker:down": "docker compose down -v",
+    "deps:ide": "pnpm install",
+    "solidcn:add": "node ./scripts/solidcn-add.mjs",
     "build": "turbo run build",
     "storybook": "turbo run storybook --filter=@church/ui",
     "build-storybook": "turbo run build-storybook --filter=@church/ui",
