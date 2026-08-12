@@ -25,6 +25,7 @@ WEB_SERVICE="${WEB_SERVICE:-church-web}"
 ROTATE_SECRETS=0
 SKIP_BUILD=0
 SKIP_SECRETS=0
+CI_DEPLOY=0
 
 # Prefer gcloud.cmd on Windows Git Bash (aliases do not apply in scripts).
 if command -v gcloud.cmd >/dev/null 2>&1; then
@@ -38,13 +39,15 @@ Deploy church stack to Google Cloud Run (asia-southeast1 by default).
   --rotate-secrets   Generate new BETTER_AUTH_SECRET and ADMIN_API_TOKEN versions
   --skip-build       Redeploy existing images only (still patches env/URLs)
   --skip-secrets     Do not create/update Secret Manager secrets
+  --ci               GitHub Actions mode: use Application Default Credentials
+                     (no personal gcloud account switch). Prefer with --skip-secrets.
   --help             Show this help
 
-Env overrides: GCP_PROJECT, GCP_REGION, AR_REPO, API_SERVICE, AUTH_SERVICE, WEB_SERVICE
+Env overrides: GCP_PROJECT, GCP_REGION, AR_REPO, API_SERVICE, AUTH_SERVICE, WEB_SERVICE,
+               GCP_ACCOUNT (local only), CLOUDINARY_CLOUD_NAME, VITE_* build args
 
 Secrets are seeded from .env / .env.production.local (DATABASE_URL, Cloudinary, etc.).
-New production auth/admin tokens are generated unless secrets already exist
-(or --rotate-secrets forces new versions).
+In CI, keep secrets in Secret Manager and pass --ci --skip-secrets.
 EOF
 }
 
@@ -53,6 +56,7 @@ while [[ $# -gt 0 ]]; do
     --rotate-secrets) ROTATE_SECRETS=1; shift ;;
     --skip-build) SKIP_BUILD=1; shift ;;
     --skip-secrets) SKIP_SECRETS=1; shift ;;
+    --ci) CI_DEPLOY=1; shift ;;
     --help|-h) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 1 ;;
   esac
@@ -97,6 +101,10 @@ load_env_file "$ROOT/.env"
 load_env_file "$ROOT/.env.production.local"
 
 ensure_apis() {
+  if [[ "$CI_DEPLOY" == "1" ]]; then
+    log "CI: skip enabling APIs (project should already have Run/AR/Secret Manager)"
+    return
+  fi
   log "Enabling GCP APIs on ${PROJECT}"
   gcloud services enable \
     run.googleapis.com \
@@ -341,8 +349,13 @@ deploy_web() {
 }
 
 main() {
-  log "Project=${PROJECT} Region=${REGION} Account=${ACCOUNT}"
-  gcloud config set account "$ACCOUNT" --quiet
+  log "Project=${PROJECT} Region=${REGION} CI=${CI_DEPLOY}"
+  if [[ "$CI_DEPLOY" == "1" ]]; then
+    log "Using Application Default Credentials (CI)"
+  else
+    log "Account=${ACCOUNT}"
+    gcloud config set account "$ACCOUNT" --quiet
+  fi
   gcloud config set project "$PROJECT" --quiet
 
   ensure_apis
