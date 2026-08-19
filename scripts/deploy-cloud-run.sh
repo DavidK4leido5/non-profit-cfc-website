@@ -75,8 +75,12 @@ need_cmd() {
 }
 
 need_cmd gcloud
-need_cmd docker
-need_cmd openssl
+if [[ "$SKIP_BUILD" != "1" ]]; then
+  need_cmd docker
+fi
+if [[ "$SKIP_SECRETS" != "1" || "$ROTATE_SECRETS" == "1" ]]; then
+  need_cmd openssl
+fi
 
 load_env_file() {
   local f="$1"
