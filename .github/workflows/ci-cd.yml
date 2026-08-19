@@ -86,10 +86,15 @@ jobs:
 
       - name: Submit Cloud Build
         run: |
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          SUBS="_SHORT_SHA=${SHORT_SHA}"
+          if [ -n "${CLOUDINARY_CLOUD_NAME}" ]; then
+            SUBS="${SUBS},_CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}"
+          fi
           gcloud builds submit \
             --project="${GCP_PROJECT}" \
             --config=cloudbuild.yaml \
-            --substitutions="_CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}" \
+            --substitutions="${SUBS}" \
             --timeout=3600s
         env:
           CLOUDINARY_CLOUD_NAME: ${{ vars.CLOUDINARY_CLOUD_NAME }}
