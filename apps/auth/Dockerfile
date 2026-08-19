@@ -33,8 +33,8 @@ CMD ["pnpm", "--filter", "@church/auth", "dev"]
 FROM base AS runner
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV AUTH_PORT=3001
+ENV PORT=8080
 COPY --from=builder /app /app
 WORKDIR /app
-EXPOSE 3001
+EXPOSE 8080
 CMD ["pnpm", "--filter", "@church/auth", "start"]

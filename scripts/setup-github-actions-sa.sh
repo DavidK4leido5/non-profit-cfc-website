@@ -32,15 +32,17 @@ fi
 
 PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
 RUNTIME_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+CB_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
 
-# Deploy permissions
-# Deploy permissions (project may already have conditional IAM bindings)
+# GitHub Actions submits Cloud Build; Cloud Build SA builds images and deploys.
 for ROLE in \
   roles/run.admin \
   roles/artifactregistry.writer \
-  roles/secretmanager.secretAccessor
+  roles/secretmanager.secretAccessor \
+  roles/cloudbuild.builds.editor \
+  roles/storage.admin
 do
-  log "Binding ${ROLE} on project"
+  log "Binding ${ROLE} on project → ${SA_EMAIL}"
   gcloud projects add-iam-policy-binding "$PROJECT" \
     --member="serviceAccount:${SA_EMAIL}" \
     --role="$ROLE" \
@@ -48,12 +50,27 @@ do
     --quiet >/dev/null
 done
 
-log "Allow deploy SA to act as runtime compute SA"
-gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SA" \
-  --project="$PROJECT" \
-  --member="serviceAccount:${SA_EMAIL}" \
-  --role="roles/iam.serviceAccountUser" \
-  --quiet >/dev/null
+for ROLE in \
+  roles/run.admin \
+  roles/artifactregistry.writer \
+  roles/secretmanager.secretAccessor
+do
+  log "Binding ${ROLE} on project → ${CB_SA}"
+  gcloud projects add-iam-policy-binding "$PROJECT" \
+    --member="serviceAccount:${CB_SA}" \
+    --role="$ROLE" \
+    --condition=None \
+    --quiet >/dev/null
+done
+
+log "Allow deploy SA and Cloud Build SA to act as runtime compute SA"
+for MEMBER in "$SA_EMAIL" "$CB_SA"; do
+  gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SA" \
+    --project="$PROJECT" \
+    --member="serviceAccount:${MEMBER}" \
+    --role="roles/iam.serviceAccountUser" \
+    --quiet >/dev/null
+done
 
 if [[ -f "$KEY_FILE" ]]; then
   log "Key file already exists at ${KEY_FILE} (not overwritten)"
@@ -82,5 +99,6 @@ Done.
 3. Delete the local key after uploading:
    rm -f ${KEY_FILE}
 
-4. Push to main/master to run checks + deploy (.github/workflows/ci-cd.yml).
+4. Push to main/master. GitHub Actions typechecks, then submits Cloud Build.
+   Images are built in GCP and deployed to Cloud Run. No Docker on your laptop.
 EOF

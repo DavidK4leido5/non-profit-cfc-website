@@ -1,0 +1,17 @@
+.git
+.github
+**/.env
+**/.env.*
+!.env.example
+.github-sa-key.json
+node_modules
+**/node_modules
+.pnpm-store
+.turbo
+dist
+**/dist
+storybook-static
+**/.impeccable
+*.log
+.DS_Store
+notes.txt

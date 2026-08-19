@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
-# Deploy church-web, church-api, church-auth to Cloud Run with Secret Manager.
+# Emergency / one-off Cloud Run deploy from a machine that already has images
+# or Docker. Production is Cloud Build (cloudbuild.yaml), submitted by GitHub
+# Actions. Local Docker Compose is for development only.
 # Usage:
 #   ./scripts/deploy-cloud-run.sh
 #   ./scripts/deploy-cloud-run.sh --rotate-secrets
 #   ./scripts/deploy-cloud-run.sh --help
 set -euo pipefail
 
-# Git Bash on Windows otherwise mangles gcloud.cmd paths that contain spaces.
 export MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:-*}"
+
+# Git Bash converts `/c` and splits unquoted "Google Cloud SDK" paths.
+# cmd.exe //c lets Windows resolve gcloud.cmd from PATH (//c so Git Bash
+# does not turn /c into C:\).
+if command -v cmd.exe >/dev/null 2>&1 && command -v gcloud.cmd >/dev/null 2>&1; then
+  gcloud() { cmd.exe //c gcloud.cmd "$@"; }
+fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -27,20 +35,17 @@ SKIP_BUILD=0
 SKIP_SECRETS=0
 CI_DEPLOY=0
 
-# Prefer gcloud.cmd on Windows Git Bash (aliases do not apply in scripts).
-if command -v gcloud.cmd >/dev/null 2>&1; then
-  gcloud() { gcloud.cmd "$@"; }
-fi
-
 usage() {
   cat <<'EOF'
 Deploy church stack to Google Cloud Run (asia-southeast1 by default).
 
+Production: push to main. GitHub Actions submits cloudbuild.yaml; GCP builds
+images and deploys. Do not use this script for routine production deploys.
+
   --rotate-secrets   Generate new BETTER_AUTH_SECRET and ADMIN_API_TOKEN versions
-  --skip-build       Redeploy existing images only (still patches env/URLs)
+  --skip-build       Redeploy existing Artifact Registry *:latest (used by Cloud Build)
   --skip-secrets     Do not create/update Secret Manager secrets
-  --ci               GitHub Actions mode: use Application Default Credentials
-                     (no personal gcloud account switch). Prefer with --skip-secrets.
+  --ci               Use Application Default Credentials (Cloud Build / Actions)
   --help             Show this help
 
 Env overrides: GCP_PROJECT, GCP_REGION, AR_REPO, API_SERVICE, AUTH_SERVICE, WEB_SERVICE,
@@ -295,7 +300,7 @@ deploy_auth() {
   local tag="$1"
   local web_url="${2:-https://placeholder.invalid}"
   local secrets="DATABASE_URL=church-database-url:latest,BETTER_AUTH_SECRET=church-better-auth-secret:latest,GATEWAY_SHARED_SECRET=church-gateway-secret:latest"
-  local env_vars="HOST=0.0.0.0,NODE_ENV=production,BETTER_AUTH_URL=${web_url},CORS_ORIGINS=${web_url},AUTH_REQUIRE_EMAIL_VERIFICATION=${AUTH_REQUIRE_EMAIL_VERIFICATION:-true}"
+  local env_vars="HOST=0.0.0.0,NODE_ENV=production,AUTH_PORT=8080,BETTER_AUTH_URL=${web_url},CORS_ORIGINS=${web_url},AUTH_REQUIRE_EMAIL_VERIFICATION=${AUTH_REQUIRE_EMAIL_VERIFICATION:-true}"
 
   if [[ -n "${EMAIL_FROM:-}" ]]; then
     env_vars="${env_vars},EMAIL_FROM=${EMAIL_FROM}"
@@ -360,7 +365,9 @@ main() {
 
   ensure_apis
   ensure_artifact_repo
-  configure_docker_auth
+  if [[ "$SKIP_BUILD" != "1" ]]; then
+    configure_docker_auth
+  fi
   ensure_secrets
 
   local api_tag auth_tag web_tag
