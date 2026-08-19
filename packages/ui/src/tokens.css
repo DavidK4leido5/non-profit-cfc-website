@@ -1,75 +1,103 @@
 /**
- * Design tokens — see COLOR-PALETTE.md for rationale and usage.
+ * Design tokens — Grace Community Church system (design.md).
  */
 :root {
-  /* Brand scale — royal blue (kept for gradual migration; prefer primary/accent) */
-  --color-brand-50: #eef2fc;
-  --color-brand-100: #d9e4fa;
-  --color-brand-200: #b3c9f5;
-  --color-brand-300: #8daef0;
-  --color-brand-400: #5c85e8;
-  --color-brand-500: #4169e1;
-  --color-brand-600: #3454b4;
-  --color-brand-700: #2a4390;
-  --color-brand-800: #1f326c;
-  --color-brand-900: #15224a;
-  --color-brand-950: #0c1428;
+  --color-navy-900: #0b1e3d;
+  --color-navy-800: #10264a;
+  --color-navy-700: #16305c;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #b08b1c;
+  --color-gold-100: #f7efd8;
+  --color-gold-400: #c9a227;
+  --color-white: #ffffff;
+  --color-bg-light: #f7f7f5;
+  --color-bg-muted: #f2f0ea;
+  --color-text-heading: #101828;
+  --color-text-body: #5b6472;
+  --color-text-muted: #8b93a1;
+  --color-text-on-dark: #ffffff;
+  --color-text-on-dark-muted: #b9c2d0;
+  --color-overlay-dark: rgba(11, 30, 61, 0.55);
 
-  /*
-   * Semantic roles
-   * primary — deep navy (footer, dark sections) — THE primary brand color
-   * accent  — royal blue (CTAs, interactive fills)
-   * gold    — warm highlight (optional, sparingly)
-   */
-  --color-primary: #0c1428;
-  --color-primary-soft: #15224a;
-  --color-primary-muted: #1f326c;
+  --text-xs: clamp(0.75rem, 0.7rem + 0.2vw, 0.8125rem);
+  --text-sm: clamp(0.875rem, 0.82rem + 0.25vw, 0.9375rem);
+  --text-base: clamp(1rem, 0.95rem + 0.3vw, 1.0625rem);
+  --text-lg: clamp(1.125rem, 1.05rem + 0.4vw, 1.25rem);
+  --text-xl: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
+  --text-2xl: clamp(1.75rem, 1.5rem + 1.2vw, 2.25rem);
+  --text-3xl: clamp(2.25rem, 1.8rem + 2vw, 3rem);
+  --size-hero: clamp(2.85rem, 1.7rem + 5.2vw, 5.5rem);
+  --tracking-hero: -0.03em;
+  --tracking-display: -0.02em;
+  --tracking-label: 0.12em;
+  --leading-body: 1.7;
+  --leading-display: 1.12;
 
-  --color-accent-50: #eef2fc;
-  --color-accent-100: #d9e4fa;
-  --color-accent-200: #b3c9f5;
-  --color-accent-300: #8daef0;
-  --color-accent-400: #5c85e8;
-  --color-accent-500: #4169e1;
-  --color-accent-600: #3454b4;
-  --color-accent-700: #2a4390;
+  --space-xs: clamp(0.5rem, 0.4rem + 0.5vw, 0.75rem);
+  --space-sm: clamp(0.75rem, 0.6rem + 0.75vw, 1.25rem);
+  --space-md: clamp(1.25rem, 1rem + 1.25vw, 2rem);
+  --space-lg: clamp(2rem, 1.5rem + 2vw, 3.5rem);
+  --space-xl: clamp(3rem, 2rem + 4vw, 6rem);
+  --space-2xl: clamp(4rem, 2.5rem + 6vw, 8rem);
 
-  --color-gold-400: #fbbf24;
-  --color-gold-500: #f59e0b;
-  --color-gold-600: #d97706;
+  /* Brand scale mapped onto navy (legacy class names) */
+  --color-brand-50: #f7efd8;
+  --color-brand-100: #f7efd8;
+  --color-brand-200: #e6e4dd;
+  --color-brand-300: #b9c2d0;
+  --color-brand-400: #16305c;
+  --color-brand-500: #16305c;
+  --color-brand-600: #10264a;
+  --color-brand-700: #10264a;
+  --color-brand-800: #0b1e3d;
+  --color-brand-900: #0b1e3d;
+  --color-brand-950: #0b1e3d;
+
+  --color-primary: #0b1e3d;
+  --color-primary-soft: #10264a;
+  --color-primary-muted: #16305c;
+
+  --color-accent-50: #f7efd8;
+  --color-accent-100: #f7efd8;
+  --color-accent-200: #e8d9a8;
+  --color-accent-300: #d4bc63;
+  --color-accent-400: #c9a227;
+  --color-accent-500: #c9a227;
+  --color-accent-600: #b08b1c;
+  --color-accent-700: #8c6e16;
 
   /* Ink */
-  --color-ink: #0f172a;
-  --color-ink-heading: #0c1428;
-  --color-ink-muted: #475569;
-  --color-ink-subtle: #64748b;
-  --color-ink-inverse: #f8fafc;
+  --color-ink: #5b6472;
+  --color-ink-heading: #101828;
+  --color-ink-muted: #8b93a1;
+  --color-ink-subtle: #8b93a1;
+  --color-ink-inverse: #ffffff;
 
   /* Surface */
   --color-surface: #ffffff;
-  --color-surface-subtle: #f8fafc;
-  --color-surface-muted: #f1f5f9;
-  --color-surface-hero: #eef2fc;
-  --color-surface-hero-end: #f8fafc;
+  --color-surface-subtle: #f7f7f5;
+  --color-surface-muted: #f2f0ea;
+  --color-surface-hero: #0b1e3d;
+  --color-surface-hero-end: #10264a;
   --color-surface-elevated: #ffffff;
 
   /* Semantic */
-  --color-success: #059669;
+  --color-success: #2f7d5e;
   --color-success-subtle: #ecfdf5;
-  --color-warning: #d97706;
-  --color-warning-subtle: #fffbeb;
+  --color-warning: #b08b1c;
+  --color-warning-subtle: #f7efd8;
   --color-error: #dc2626;
   --color-error-subtle: #fef2f2;
-  --color-info: #4169e1;
-  --color-info-subtle: #eef2fc;
+  --color-info: #16305c;
+  --color-info-subtle: #f2f0ea;
 
   /* Border */
-  --color-border: #e2e8f0;
-  --color-border-strong: #cbd5e1;
-  --color-border-brand: #b3c9f5;
+  --color-border: #e6e4dd;
+  --color-border-strong: #d4d1c8;
+  --color-border-brand: #c9a227;
 
   /* Focus */
-  --color-focus-ring: #4169e1;
+  --color-focus-ring: #c9a227;
   --color-focus-ring-offset: #ffffff;
 
   /* Shadows */
@@ -97,20 +125,21 @@
    * Typography — geometric sans (Outfit) across the site.
    * See docs/TYPOGRAPHY.md. Google Fonts stand-ins (commercial fonts not licensed).
    */
-  --font-display: "Outfit", "Segoe UI", system-ui, sans-serif;
-  --font-body: "Outfit", "Segoe UI", system-ui, sans-serif;
-  --font-ui: "Outfit", "Segoe UI", system-ui, sans-serif;
-  --font-hero: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --font-heading: "Playfair Display", Georgia, serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-heading);
+  --font-ui: var(--font-body);
+  --font-hero: var(--font-heading);
 }
 
 html {
-  font-kerning: none;
-  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
 }
 
 body {
   font-family: var(--font-body);
   font-weight: 400;
+  caret-color: var(--color-navy-900);
 }
 
 h1,
@@ -118,10 +147,10 @@ h2,
 h3,
 h4,
 .font-display {
-  font-family: var(--font-display);
-  font-weight: 300;
+  font-family: var(--font-heading);
+  font-weight: 700;
   font-kerning: none;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 .font-body {
@@ -186,9 +215,10 @@ textarea {
   --color-accent-600: var(--color-accent-600);
   --color-accent-700: var(--color-accent-700);
 
-  --color-gold-400: var(--color-gold-400);
+          --color-gold-400: var(--color-gold-400);
   --color-gold-500: var(--color-gold-500);
   --color-gold-600: var(--color-gold-600);
+  --color-gold-100: var(--color-gold-100);
 
   --color-ink: var(--color-ink);
   --color-ink-heading: var(--color-ink-heading);

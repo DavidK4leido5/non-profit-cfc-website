@@ -8,6 +8,7 @@
     "./cta-button": "./src/components/CtaButton.tsx",
     "./navbar": "./src/components/Navbar.tsx",
     "./hero": "./src/components/Hero.tsx",
+    "./home-landing": "./src/components/HomeLanding.tsx",
     "./hero-feature-strip": "./src/components/HeroFeatureStrip.tsx",
     "./hero-preview-card": "./src/components/HeroPreviewCard.tsx",
     "./trust-strip": "./src/components/TrustStrip.tsx",

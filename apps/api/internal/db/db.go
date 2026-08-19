@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -20,7 +21,12 @@ func Open(databaseURL string) (*gorm.DB, error) {
 	}
 
 	gdb, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{
-		Logger:                 logger.Default.LogMode(logger.Warn),
+		// Neon (and any remote pooler) often takes 150–400ms per round trip from local Docker.
+		Logger: logger.New(log.New(os.Stdout, "", log.LstdFlags), logger.Config{
+			SlowThreshold:             500 * time.Millisecond,
+			LogLevel:                  logger.Warn,
+			IgnoreRecordNotFoundError: true,
+		}),
 		SkipDefaultTransaction: true,
 	})
 	if err != nil {
@@ -71,12 +77,17 @@ func Migrate(ctx context.Context, gdb *gorm.DB, migrationsDir string) error {
 	}
 	sort.Strings(ups)
 
+	var applied []string
+	if err := db.Raw(`SELECT filename FROM schema_migrations`).Scan(&applied).Error; err != nil {
+		return fmt.Errorf("list migrations: %w", err)
+	}
+	done := make(map[string]struct{}, len(applied))
+	for _, name := range applied {
+		done[name] = struct{}{}
+	}
+
 	for _, name := range ups {
-		var exists bool
-		if err := db.Raw(`SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE filename = ?)`, name).Scan(&exists).Error; err != nil {
-			return err
-		}
-		if exists {
+		if _, ok := done[name]; ok {
 			continue
 		}
 

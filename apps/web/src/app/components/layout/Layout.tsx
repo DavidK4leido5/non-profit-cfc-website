@@ -2,7 +2,7 @@ import { A, useLocation } from "@solidjs/router";
 import { ParentProps, Show } from "solid-js";
 import { Navbar } from "@church/ui/navbar";
 import { SiteFooter } from "@church/ui/site-footer";
-import { siteContent } from "~/content/site.content";
+import { siteContent, type SiteNavLink } from "~/content/site.content";
 import { useAuthSession } from "~/app/stores/session";
 import { NavUserAvatar } from "./NavUserAvatar";
 
@@ -21,9 +21,27 @@ export function Layout(props: ParentProps) {
   const userEmail = () => user()?.email ?? null;
 
   const navLinks = () => {
-    const links = siteContent.nav.links.map((link) => ({
-      ...link,
-      active: location.pathname === link.href,
+    const hash = location.hash;
+    const links: {
+      href: string;
+      label: string;
+      active: boolean;
+      children?: { href: string; label: string }[];
+    }[] = siteContent.nav.links.map((link) => ({
+      href: link.href,
+      label: link.label,
+      active: link.href.startsWith("#")
+        ? location.pathname === "/" && hash === link.href
+        : link.href === "/"
+          ? location.pathname === "/" && hash.length === 0
+          : location.pathname === link.href,
+      children:
+        "children" in link && Array.isArray(link.children)
+          ? (link.children as readonly SiteNavLink[]).map((child) => ({
+              href: child.href,
+              label: child.label,
+            }))
+          : undefined,
     }));
     if (userEmail()) {
       links.push({
@@ -55,6 +73,11 @@ export function Layout(props: ParentProps) {
           brand={siteContent.brand}
           links={navLinks()}
           cta={userEmail() ? undefined : siteContent.nav.signIn}
+          visitCta={siteContent.nav.visit}
+          utility={{
+            address: siteContent.utilityBar.address,
+            serviceTimes: siteContent.utilityBar.serviceTimes,
+          }}
           userEmail={userEmail()}
           userSlot={
             user() ? (
@@ -63,12 +86,12 @@ export function Layout(props: ParentProps) {
                 email={user()?.email}
                 image={user()?.image}
                 href="/dashboard"
-                light={isFullBleed() && !isDashboard()}
+                light={false}
               />
             ) : undefined
           }
-          variant={isFullBleed() && !isDashboard() ? "transparent" : "solid"}
-          tone={isFullBleed() && !isDashboard() ? "light" : "dark"}
+          variant="solid"
+          tone="dark"
           Link={(linkProps) => (
             <A
               href={linkProps.href}
@@ -93,10 +116,16 @@ export function Layout(props: ParentProps) {
       <Show when={!isCmsAdmin() && !isAuth()}>
         <SiteFooter
           churchName={siteContent.footer.churchName}
+          tagline="A place to belong, believe, and become"
           logo={siteContent.footer.logo}
           g12Logo={siteContent.footer.g12Logo}
-          contact={siteContent.footer.contact}
-          social={[...(siteContent.footer.social ?? [])]}
+          contact={{
+            email: siteContent.footer.contact.email,
+            address: siteContent.footer.contact.address,
+            serviceTimes: siteContent.footer.contact.serviceTimes,
+          }}
+          social={[]}
+          legalLinks={[]}
           copyright={siteContent.footer.copyright}
         />
       </Show>

@@ -19,7 +19,7 @@ import {
 
 assertGatewayConfigured();
 
-const port = Number(process.env.PORT ?? process.env.AUTH_PORT ?? 3001);
+const port = Number(process.env.AUTH_PORT ?? process.env.PORT ?? 3001);
 const hostname = process.env.HOST ?? "0.0.0.0";
 
 const trustedOrigins = (

@@ -1,6 +1,5 @@
 import { For, Show } from "solid-js";
-import { motion } from "motion-solid";
-import { easeOut, fadeUpItem, fadeUpStagger, viewportOnce } from "../motion/presets";
+import { QuoteIcon } from "../icons/grace-icons";
 
 export type G12VisionStep = {
   title: string;
@@ -31,82 +30,67 @@ export type G12VisionSectionProps = {
 
 export function G12VisionSection(props: G12VisionSectionProps) {
   return (
-    <motion.section
+    <section
       id="g12-vision"
-      class={`border-t border-border bg-surface ${props.class ?? ""}`}
-      initial="initial"
-      whileInView="animate"
-      viewport={viewportOnce}
-      variants={fadeUpStagger}
+      class={`grace-section-tight bg-[var(--color-bg-muted)] ${props.class ?? ""}`}
     >
-      <div class="mx-auto max-w-page px-4 py-14 sm:py-16 lg:px-10 lg:py-20">
-        <motion.header
-          class="mb-10 flex flex-col items-center gap-6 sm:mb-12 sm:flex-row sm:items-center sm:justify-between sm:gap-8 lg:mb-14"
-          variants={fadeUpItem}
-          transition={easeOut}
-        >
-          <h2 class="font-display text-ink-heading text-center text-4xl font-light tracking-tight uppercase sm:text-5xl lg:text-left lg:text-6xl xl:text-7xl">
+      <div class="container">
+        <header class="mb-[var(--space-xl)] flex flex-col items-center gap-[var(--space-md)] lg:flex-row lg:justify-between">
+          <h2 class="type-section text-center text-[var(--color-text-heading)] lg:text-left">
             {props.headerTitle}
           </h2>
           <img
             src={props.logo.src}
             alt={props.logo.alt}
-            class="h-20 w-auto max-w-[min(100%,18rem)] rounded-xl object-contain sm:h-24 lg:h-28"
+            class="mx-auto h-20 w-auto max-w-[min(100%,16rem)] object-contain lg:mx-0 lg:h-24"
             loading="lazy"
             decoding="async"
           />
-        </motion.header>
+        </header>
 
-        <div class="flex flex-col gap-10 lg:flex-row-reverse lg:items-start lg:gap-14 xl:gap-20">
-          <motion.div
-            class="lg:w-1/2 lg:shrink-0 lg:pt-1"
-            variants={fadeUpItem}
-            transition={easeOut}
-          >
-            <p class="font-ui text-brand-600 text-xs font-semibold uppercase tracking-wider sm:text-sm">
+        <div class="flex flex-col gap-[var(--space-xl)] lg:flex-row-reverse lg:items-start">
+          <div class="stack-sm min-w-0 lg:w-1/2">
+            <h3 class="type-subhead text-[var(--color-text-heading)]">
               {props.eyebrow}
-            </p>
-
-            <blockquote class="border-brand-200 mt-5 border-s-4 ps-5 sm:mt-6">
-              <p class="font-body text-ink-heading text-lg leading-relaxed font-medium italic sm:text-xl">
-                &ldquo;{props.scripture.text}&rdquo;
+            </h3>
+            <blockquote class="stack-xs">
+              <QuoteIcon class="h-8 w-8 text-[var(--color-gold-600)]" />
+              <p class="type-quote text-[var(--color-text-heading)]">
+                “{props.scripture.text}”
               </p>
-              <footer class="font-ui text-ink-subtle mt-3 text-sm font-medium not-italic">
-                — {props.scripture.reference}
+              <footer class="type-meta font-semibold text-[var(--color-navy-900)]">
+                {props.scripture.reference}
               </footer>
             </blockquote>
-
-            <p class="font-body text-ink-muted mt-6 text-base leading-relaxed sm:mt-8 sm:text-lg">
+            <p class="type-body text-[var(--color-text-body)]">
               {props.intro}
             </p>
-
             <Show when={props.closing}>
-              <p class="font-body text-ink-heading mt-6 text-sm leading-relaxed font-medium sm:text-base">
+              <p class="type-body font-medium text-[var(--color-text-heading)]">
                 {props.closing}
               </p>
             </Show>
-          </motion.div>
+          </div>
 
-          <motion.div class="lg:w-1/2" variants={fadeUpItem} transition={{ ...easeOut, delay: 0.06 }}>
-            <h3 class="font-display text-ink-heading text-2xl font-light tracking-tight sm:text-3xl">
+          <div class="min-w-0 lg:w-1/2">
+            <h3 class="type-subhead text-[var(--color-text-heading)]">
               {props.title}
             </h3>
-
-            <ol class="mt-6 space-y-5 sm:mt-8 sm:space-y-6">
+            <ol class="mt-[var(--space-md)] flex flex-col gap-[var(--space-md)]">
               <For each={props.steps}>
                 {(step, index) => (
-                  <li class="flex gap-4 sm:gap-5">
+                  <li class="flex gap-[var(--space-sm)]">
                     <span
-                      class="bg-accent-500 text-on-hero font-ui flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold sm:h-10 sm:w-10"
+                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-navy-900)] text-[length:var(--text-sm)] font-semibold tabular-nums text-white"
                       aria-hidden="true"
                     >
                       {index() + 1}
                     </span>
-                    <div class="min-w-0 pt-0.5">
-                      <h4 class="font-display text-ink-heading text-lg font-light tracking-tight sm:text-xl">
+                    <div class="min-w-0">
+                      <h4 class="type-card-title text-[var(--color-text-heading)]">
                         {step.title}
                       </h4>
-                      <p class="font-body text-ink-muted mt-1.5 text-sm leading-relaxed sm:text-base">
+                      <p class="type-list mt-1.5 text-[var(--color-text-body)]">
                         {step.description}
                       </p>
                     </div>
@@ -114,9 +98,9 @@ export function G12VisionSection(props: G12VisionSectionProps) {
                 )}
               </For>
             </ol>
-          </motion.div>
+          </div>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

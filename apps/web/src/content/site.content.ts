@@ -9,6 +9,7 @@ import g12PhilippinesLogo from "~/assets/images/g12philippines_logo.png";
 export type SiteNavLink = {
   href: string;
   label: string;
+  children?: readonly SiteNavLink[];
 };
 
 export type SiteCta = {
@@ -63,6 +64,7 @@ export type SiteFooterContent = {
     email?: string;
     phone?: string;
     address?: string;
+    serviceTimes?: string;
   };
   social?: SiteSocialLink[];
   copyright: string;
@@ -125,7 +127,8 @@ export type SiteBoardContent = {
 
 export const siteContent = {
   brand: {
-    name: "Christian Fellowship\nChurch",
+    name: "Christian Fellowship Church",
+    mark: "Christian Fellowship\nChurch",
     href: "/",
     logo: {
       /** Place file in apps/web/src/assets/images/ (Vite bundles it reliably in dev) */
@@ -145,13 +148,179 @@ export const siteContent = {
   nav: {
     links: [
       { href: "/", label: "Home" },
-      { href: "/board", label: "Board" },
-      { href: "/resources", label: "Resources" },
-    ] satisfies SiteNavLink[],
+      { href: "#about", label: "About Us" },
+      { href: "#g12-vision", label: "Vision" },
+      { href: "#ministries", label: "Ministries" },
+      { href: "#events", label: "Events" },
+      { href: "#give", label: "Give" },
+      { href: "#contact", label: "Contact Us" },
+    ],
     signIn: {
       label: "Sign in",
       href: "/auth/login",
     } satisfies SiteCta,
+    visit: {
+      label: "Plan Your Visit",
+      href: "#visit",
+    } satisfies SiteCta,
+  },
+
+  utilityBar: {
+    address: "Negros Occidental, Philippines",
+    phone: "+63 912 345 6789",
+    serviceTimes: "Sundays 10:00 AM",
+  },
+
+  home: {
+    hero: {
+      eyebrow: "Welcome Home",
+      lines: ["Love God.", "Love People.", "Make a Difference."] as const,
+      subcopy:
+        "Join us for worship, community, and growth. Everyone is welcome — come as you are and discover faith lived out together.",
+      primaryCta: { label: "Plan Your Visit", href: "#visit" },
+      secondaryCta: { label: "Our G12 vision", href: "#g12-vision" },
+      background: {
+        src: "https://images.unsplash.com/photo-1473177104440-ffee2f376098?w=1920&q=80",
+        alt: "Stock photograph of a church building at golden hour — not our campus",
+      },
+      values: [
+        { title: "Worship", icon: "worship" as const },
+        { title: "Grow", icon: "grow" as const },
+        { title: "Serve", icon: "serve" as const },
+      ],
+    },
+    about: {
+      eyebrow: "About Us",
+      title: "A Place to Belong",
+      body: "Christian Fellowship Church is a family following the G12 vision — winning people to Christ, consolidating new believers, discipling leaders, and sending multipliers into the city.",
+      benefits: [
+        "Warm Sunday worship for every generation",
+        "Cell groups that feel like family",
+        "Kids, youth, and young adult ministries",
+        "Clear next steps to grow as a disciple",
+        "Serving our neighbors across Negros Occidental",
+      ],
+      cta: { label: "Learn More About Us", href: "#g12-vision" },
+      image: {
+        src: "https://images.unsplash.com/photo-1438032005730-c779502df39b?w=1400&q=80",
+        alt: "Stock photograph of sunlight through church windows — not a photo of this congregation",
+      },
+    },
+    ministries: {
+      eyebrow: "Our Ministries",
+      title: "Ministries for Every Season of Life",
+      items: [
+        {
+          title: "Kids",
+          description: "Safe, joyful spaces where children meet Jesus.",
+          href: "/board",
+          icon: "kids" as const,
+        },
+        {
+          title: "Youth",
+          description: "Students growing in faith, friendship, and purpose.",
+          href: "/board",
+          icon: "youth" as const,
+        },
+        {
+          title: "Young Adults",
+          description: "Community for the next generation of leaders.",
+          href: "/board",
+          icon: "adults" as const,
+        },
+        {
+          title: "Men",
+          description: "Brotherhood through prayer, breakfasts, and serving.",
+          href: "/board",
+          icon: "men" as const,
+        },
+        {
+          title: "Women",
+          description: "Encouragement, study, and sisterhood in Christ.",
+          href: "/board",
+          icon: "women" as const,
+        },
+        {
+          title: "Outreach",
+          description: "Loving our city with practical compassion.",
+          href: "/board",
+          icon: "outreach" as const,
+        },
+      ],
+    },
+    events: {
+      eyebrow: "Upcoming Events",
+      title: "What's coming",
+      cta: { label: "Open the ministry board", href: "/board" },
+      items: [
+        {
+          month: "SAT",
+          day: "1st",
+          title: "Men's Breakfast Fellowship",
+          when: "First Saturday each month",
+          description:
+            "Monthly gathering over coffee and a shared meal — honest conversation, encouragement, and prayer.",
+          href: "/board",
+        },
+      ],
+    },
+    give: {
+      eyebrow: "Give",
+      title: "Your Generosity Changes Lives",
+      body: "Tithes and offerings fuel worship, discipleship, and care for our neighbors. Thank you for partnering with us.",
+      cta: {
+        label: "Ask about giving",
+        href: "mailto:hello@christianfellowshipchurch.org?subject=Giving",
+      },
+      image: {
+        src: "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=1400&q=80",
+        alt: "Stock photograph of hands joined in warm light — not a photo from this church",
+      },
+    },
+    stats: [
+      { value: "1,200+", label: "People in our family" },
+      { value: "40+", label: "Cell groups" },
+      { value: "12", label: "Active ministries" },
+      { value: "1985", label: "Serving our city since" },
+    ],
+    testimonials: {
+      eyebrow: "What People Are Saying",
+      title: "Real People. Real Stories.",
+      items: [
+        {
+          quote: "This church felt like home from the first Sunday. People remembered our names.",
+          name: "Maria Santos",
+          location: "Bacolod",
+          avatar: {
+            src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&q=80",
+            alt: "Stock portrait — not a photograph of Maria Santos",
+          },
+        },
+        {
+          quote: "Our kids love Sunday mornings, and we have grown as a family in the Word.",
+          name: "James Cruz",
+          location: "Talisay",
+          avatar: {
+            src: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80",
+            alt: "Stock portrait — not a photograph of James Cruz",
+          },
+        },
+        {
+          quote: "Cell group is where I learned that discipleship is a lifestyle, not a class.",
+          name: "Alyssa Reyes",
+          location: "Silay",
+          avatar: {
+            src: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80",
+            alt: "Stock portrait — not a photograph of Alyssa Reyes",
+          },
+        },
+      ],
+    },
+    ctaBanner: {
+      title: "We'd love to meet you!",
+      subtitle: "Come this Sunday — we'll save you a seat and help you feel at home.",
+      cta: { label: "Plan Your Visit", href: "#visit" },
+    },
   },
 
   hero: {
@@ -560,12 +729,9 @@ export const siteContent = {
       email: "hello@christianfellowshipchurch.org",
       phone: "+63 912 345 6789",
       address: "Negros Occidental, Philippines",
+      serviceTimes: "Sundays 10:00 AM",
     },
-    social: [
-      { label: "Facebook", href: "https://facebook.com" },
-      { label: "Instagram", href: "https://instagram.com" },
-      { label: "YouTube", href: "https://youtube.com" },
-    ],
+    social: [],
     copyright: "© 2026 Christian Fellowship Church",
   } satisfies SiteFooterContent,
 
